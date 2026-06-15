@@ -6,21 +6,32 @@
   --bg-card-hover: #1E1E1E;
   --bg-elevated: #1A1A1A;
   --border: #252525;
-  --border-hover: #00E5CC44;
   --neon: #00E5CC;
   --neon-dim: #00E5CC18;
-  --neon-hover: #00FFE0;
   --text-primary: #FFFFFF;
   --text-secondary: #8A8A8A;
   --text-muted: #484848;
 }
 
+[data-theme="light"] {
+  --bg-base: #F5F5F5;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F0F0F0;
+  --bg-elevated: #EBEBEB;
+  --border: #E0E0E0;
+  --neon: #009E8E;
+  --neon-dim: #00E5CC18;
+  --text-primary: #111111;
+  --text-secondary: #555555;
+  --text-muted: #AAAAAA;
+}
+
 body {
   background-color: var(--bg-base);
   color: var(--text-primary);
+  transition: background-color 0.2s, color 0.2s;
 }
 
-/* Scrollbar styling */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-base); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
