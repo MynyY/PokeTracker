@@ -92,7 +92,7 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search cards..."
+            placeholder="Search cards..." autoComplete="off"
             className="w-full pl-8 pr-3 py-1.5 rounded-lg text-sm outline-none"
             style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
             onFocus={(e) => (e.target.style.borderColor = "var(--neon)")}
