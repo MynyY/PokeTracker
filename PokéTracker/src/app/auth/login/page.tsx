@@ -15,10 +15,8 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-
     if (error) {
       setError(error.message);
       setLoading(false);
@@ -30,42 +28,49 @@ export default function LoginPage() {
 
   return (
     <>
-      <h2 className="text-2xl font-bold text-gray-900 mb-1">Welcome back</h2>
-      <p className="text-gray-500 text-sm mb-6">Sign in to your collection</p>
+      <h2 className="text-2xl font-bold mb-1" style={{ color: "var(--text-primary)" }}>Welcome back</h2>
+      <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>Sign in to your collection</p>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+        <div className="mb-4 p-3 rounded-lg text-sm" style={{ backgroundColor: "#FF003322", border: "1px solid #FF003366", color: "#FF6B6B" }}>
           {error}
         </div>
       )}
 
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Email</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+            className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all"
+            style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+            onFocus={(e) => e.target.style.borderColor = "var(--neon)"}
+            onBlur={(e) => e.target.style.borderColor = "var(--border)"}
             placeholder="you@example.com"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+          <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Password</label>
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-sm"
+            className="w-full px-3 py-2 rounded-lg text-sm outline-none transition-all"
+            style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+            onFocus={(e) => e.target.style.borderColor = "var(--neon)"}
+            onBlur={(e) => e.target.style.borderColor = "var(--border)"}
             placeholder="••••••••"
           />
         </div>
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-semibold rounded-lg transition-colors text-sm"
+          className="w-full py-2.5 px-4 font-semibold rounded-lg transition-all text-sm"
+          style={{ backgroundColor: "var(--neon)", color: "#000", opacity: loading ? 0.6 : 1 }}
         >
           {loading ? "Signing in…" : "Sign in"}
         </button>

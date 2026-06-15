@@ -23,49 +23,54 @@ export default function NavBar({ profile }: { profile: Profile }) {
   ];
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-40">
+    <nav style={{ backgroundColor: "var(--bg-card)", borderBottom: "1px solid var(--border)" }} className="sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
-          {/* Logo */}
-          <Link href="/dashboard" className="flex items-center gap-2 font-bold text-gray-900">
-            <img src="/pokeball.jpg" alt="" className="w-6 h-6 rounded-full" />
+          <Link href="/dashboard" className="flex items-center gap-2 font-bold" style={{ color: "var(--text-primary)" }}>
+            <img src="/pokeball.jpg" alt="" className="w-6 h-6 rounded-full" style={{ boxShadow: "0 0 8px #00D4FF66" }} />
             <span className="hidden sm:inline">PokéTracker</span>
           </Link>
 
-          {/* Nav links */}
           <div className="flex items-center gap-1">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href))
-                    ? "bg-red-50 text-red-700"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {links.map((link) => {
+              const isActive = pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href));
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                  style={{
+                    backgroundColor: isActive ? "var(--neon-dim)" : "transparent",
+                    color: isActive ? "var(--neon)" : "var(--text-secondary)",
+                    border: isActive ? "1px solid var(--neon)44" : "1px solid transparent",
+                  }}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </div>
 
-          {/* User menu */}
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2">
-              <span className="text-sm text-gray-600">{profile.username}</span>
+              <span className="text-sm" style={{ color: "var(--text-secondary)" }}>{profile.username}</span>
               <span
-                className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                className="text-xs px-2 py-0.5 rounded-full font-medium"
+                style={
                   profile.role === "master"
-                    ? "bg-yellow-100 text-yellow-800"
-                    : "bg-gray-100 text-gray-600"
-                }`}
+                    ? { backgroundColor: "#00D4FF22", color: "var(--neon)", border: "1px solid #00D4FF44" }
+                    : { backgroundColor: "#2A2A2A", color: "var(--text-secondary)" }
+                }
               >
                 {profile.role}
               </span>
             </div>
             <button
               onClick={handleSignOut}
-              className="text-sm text-gray-500 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+              className="text-sm px-3 py-1.5 rounded-lg transition-colors"
+              style={{ color: "var(--text-muted)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
             >
               Sign out
             </button>

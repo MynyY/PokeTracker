@@ -4,16 +4,18 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-400 via-red-500 to-red-600 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "var(--bg-base)" }}>
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 mb-4">
-            <img src="/pokeball.jpg" alt="PokéTracker" className="w-16 h-16 rounded-full shadow-lg" />
+            <img src="/pokeball.jpg" alt="PokéTracker" className="w-16 h-16 rounded-full" style={{ boxShadow: "0 0 20px #00D4FF55" }} />
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">PokéTracker</h1>
-          <p className="text-red-100 mt-1 text-sm">Your Pokémon card collection manager</p>
+          <h1 className="text-3xl font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>PokéTracker</h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-secondary)" }}>Your Pokémon card collection manager</p>
         </div>
-        <div className="bg-white rounded-2xl shadow-2xl p-8">{children}</div>
+        <div className="rounded-2xl p-8" style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)" }}>
+          {children}
+        </div>
       </div>
     </div>
   );
