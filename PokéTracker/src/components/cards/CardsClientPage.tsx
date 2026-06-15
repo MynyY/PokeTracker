@@ -46,7 +46,9 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
     setEditCard(null); setShowAdd(false);
   }
 
-  const profit = (card: Card) => card.price_sold != null && card.price_bought != null ? card.price_sold - card.price_bought : null;
+  const realisedProfit = (card: Card) => card.price_sold != null && card.price_bought != null ? card.price_sold - card.price_bought : null;
+  const unrealisedProfit = (card: Card) => card.actual_price != null && card.price_bought != null ? card.actual_price - card.price_bought : null;
+  const profit = realisedProfit;
 
   const inputStyle = { backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)" };
 
@@ -95,7 +97,7 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                   <th className="text-left px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>Quality</th>
                   <th className="text-right px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>Bought</th>
                   <th className="text-right px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>{tab === "actual" ? "Actual" : "Sold"}</th>
-                  {tab === "history" && <th className="text-right px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>Profit</th>}
+                  <th className="text-right px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>P&amp;L</th>
                   {isOwn && <th className="px-4 py-3"></th>}
                 </tr>
               </thead>
@@ -128,13 +130,19 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                           </div>
                         )}
                       </td>
-                      {tab === "history" && (
-                        <td className="px-4 py-3 text-right">
-                          {p != null ? (
-                            <span className="font-semibold" style={{ color: p >= 0 ? "#00FF88" : "#FF6B6B" }}>{p >= 0 ? "+" : ""}€{p.toFixed(2)}</span>
-                          ) : "—"}
-                        </td>
-                      )}
+                      <td className="px-4 py-3 text-right">
+                        {tab === "actual" ? (() => {
+                          const u = unrealisedProfit(card);
+                          return u != null ? (
+                            <span className="font-semibold" style={{ color: u >= 0 ? "#00FF88" : "#FF6B6B" }}>{u >= 0 ? "+" : ""}€{u.toFixed(2)}</span>
+                          ) : <span style={{ color: "var(--text-muted)" }}>—</span>;
+                        })() : (() => {
+                          const r = realisedProfit(card);
+                          return r != null ? (
+                            <span className="font-semibold" style={{ color: r >= 0 ? "#00FF88" : "#FF6B6B" }}>{r >= 0 ? "+" : ""}€{r.toFixed(2)}</span>
+                          ) : <span style={{ color: "var(--text-muted)" }}>—</span>;
+                        })()}
+                      </td>
                       {isOwn && (
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
