@@ -13,6 +13,7 @@ export default function CardModal({ card, userId, onSave, onClose }: Props) {
     price_bought: card?.price_bought?.toString() ?? "", date_bought: card?.date_bought ?? "",
     price_sold: card?.price_sold?.toString() ?? "", date_sold: card?.date_sold ?? "",
     actual_price: card?.actual_price?.toString() ?? "",
+    extra_info: card?.extra_info ?? "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +30,7 @@ export default function CardModal({ card, userId, onSave, onClose }: Props) {
       price_sold: form.price_sold ? parseFloat(form.price_sold) : null,
       date_sold: form.date_sold || null,
       actual_price: form.actual_price ? parseFloat(form.actual_price) : null,
+      extra_info: form.extra_info || null,
     };
     const res = await fetch(isEdit ? `/api/cards/${card!.id}` : "/api/cards", {
       method: isEdit ? "PATCH" : "POST", headers: { "Content-Type": "application/json" },
@@ -107,6 +109,19 @@ export default function CardModal({ card, userId, onSave, onClose }: Props) {
                 </div>
               </>
             )}
+            <div className="col-span-2">
+              <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Extra Info</label>
+              <textarea
+                value={form.extra_info}
+                onChange={(e) => set("extra_info", e.target.value)}
+                rows={3}
+                placeholder="Notes, grading info, purchase location…"
+                className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none"
+                style={inputStyle}
+                onFocus={(e) => (e.target.style.borderColor = "var(--neon)")}
+                onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
+              />
+            </div>
           </div>
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium" style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>Cancel</button>

@@ -179,6 +179,7 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                       <td className="px-4 py-3">
                         <div className="font-medium" style={{ color: "var(--text-primary)" }}>{card.card_name}</div>
                         <div className="text-xs" style={{ color: "var(--text-muted)" }}>{[card.card_id, card.card_number].filter(Boolean).join(" · ")}</div>
+                        {card.extra_info && <div className="text-xs mt-0.5 italic" style={{ color: "var(--text-secondary)" }}>{card.extra_info}</div>}
                       </td>
                       <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{card.set_name ?? "—"}</td>
                       <td className="px-4 py-3">

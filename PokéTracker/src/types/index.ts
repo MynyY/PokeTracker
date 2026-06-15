@@ -24,6 +24,7 @@ export interface Card {
   price_sold: number | null;
   date_sold: string | null;
   actual_price: number | null;
+  extra_info: string | null;
   status: CardStatus;
   created_at: string;
   updated_at: string;
