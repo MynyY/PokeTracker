@@ -28,7 +28,7 @@ export default function NavBar({ profile }: { profile: Profile }) {
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2 font-bold text-gray-900">
-            <span className="text-xl">⚡</span>
+            <img src="/pokeball.jpg" alt="" className="w-6 h-6 rounded-full" />
             <span className="hidden sm:inline">PokéTracker</span>
           </Link>
 
