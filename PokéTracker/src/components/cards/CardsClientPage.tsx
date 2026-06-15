@@ -26,10 +26,18 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
   const [showAdd, setShowAdd] = useState(false);
   const [soldCard, setSoldCard] = useState<Card | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Card | null>(null);
+  const [search, setSearch] = useState("");
 
   const actualCards = cards.filter((c) => c.status === "actual");
   const historyCards = cards.filter((c) => c.status === "history");
-  const displayed = tab === "actual" ? actualCards : historyCards;
+  const allDisplayed = tab === "actual" ? actualCards : historyCards;
+  const displayed = search.trim()
+    ? allDisplayed.filter((c) =>
+        [c.card_name, c.set_name, c.card_id, c.card_number, c.quality]
+          .filter(Boolean)
+          .some((v) => v!.toLowerCase().includes(search.toLowerCase()))
+      )
+    : allDisplayed;
 
   async function handleDelete(card: Card) {
     const res = await fetch(`/api/cards/${card.id}`, { method: "DELETE" });
@@ -68,14 +76,32 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-xl w-fit mb-6" style={{ backgroundColor: "var(--bg-card)" }}>
+      {/* Tabs + Search */}
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: "var(--bg-card)" }}>
         {(["actual", "history"] as const).map((t) => (
           <button key={t} onClick={() => setTab(t)} className="px-4 py-1.5 rounded-lg text-sm font-medium transition-all"
             style={{ backgroundColor: tab === t ? "var(--bg-elevated)" : "transparent", color: tab === t ? "var(--neon)" : "var(--text-secondary)", border: tab === t ? "1px solid var(--neon)33" : "1px solid transparent" }}>
             {t === "actual" ? `Actual (${actualCards.length})` : `History (${historyCards.length})`}
           </button>
         ))}
+        </div>
+        <div className="relative flex-1 max-w-xs">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: "var(--text-muted)" }}>🔍</span>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search cards..."
+            className="w-full pl-8 pr-3 py-1.5 rounded-lg text-sm outline-none"
+            style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+            onFocus={(e) => (e.target.style.borderColor = "var(--neon)")}
+            onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: "var(--text-muted)" }}>×</button>
+          )}
+        </div>
       </div>
 
       {displayed.length === 0 ? (
