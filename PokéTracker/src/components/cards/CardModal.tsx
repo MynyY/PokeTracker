@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Card, CardQuality, QUALITY_OPTIONS } from "@/types";
+import SetSelector from "./SetSelector";
 
 interface Props { card?: Card; userId: string; onSave: (card: Card) => void; onClose: () => void; }
 
@@ -71,8 +72,7 @@ export default function CardModal({ card, userId, onSave, onClose }: Props) {
             </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Set</label>
-              <input value={form.set_name} onChange={(e) => set("set_name", e.target.value)} className={inputCls} style={inputStyle} placeholder="151"
-                onFocus={(e) => (e.target.style.borderColor = "var(--neon)")} onBlur={(e) => (e.target.style.borderColor = "var(--border)")} />
+              <SetSelector value={form.set_name} onChange={(v) => set("set_name", v)} />
             </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Quality *</label>

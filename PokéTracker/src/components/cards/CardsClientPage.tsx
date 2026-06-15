@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Profile } from "@/types";
+import { POKEMON_SETS } from "@/lib/sets";
 import CardModal from "./CardModal";
 import SoldModal from "./SoldModal";
 import { format } from "date-fns";
@@ -112,13 +113,13 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
-            {isOwn ? "My Cards" : `${targetProfile?.username}'s Cards`}
+            {isOwn ? "My Collection" : `${targetProfile?.username}'s Cards`}
           </h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>{actualCards.length} owned · {historyCards.length} sold</p>
         </div>
         {isOwn && (
           <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg" style={{ backgroundColor: "var(--neon)", color: "#000" }}>
-            <span>+</span> Add Card
+            <span>+</span> Add To Collection
           </button>
         )}
       </div>
@@ -181,7 +182,12 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                         <div className="text-xs" style={{ color: "var(--text-muted)" }}>{[card.card_id, card.card_number].filter(Boolean).join(" · ")}</div>
                         {card.extra_info && <div className="text-xs mt-0.5 italic" style={{ color: "var(--text-secondary)" }}>{card.extra_info}</div>}
                       </td>
-                      <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{card.set_name ?? "—"}</td>
+                      <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>
+                        {card.set_name ? (() => {
+                          const s = POKEMON_SETS.find((x) => x.code === card.set_name);
+                          return s ? <span title={s.series}>{s.name} <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>({s.code})</span></span> : card.set_name;
+                        })() : "—"}
+                      </td>
                       <td className="px-4 py-3">
                         <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold" style={{ backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }}>{card.quality}</span>
                       </td>
