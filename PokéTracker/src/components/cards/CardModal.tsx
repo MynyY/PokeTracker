@@ -89,7 +89,7 @@ export default function CardModal({ card, userId, onSave, onClose }: Props) {
                 onFocus={(e) => (e.target.style.borderColor = "var(--neon)")} onBlur={(e) => (e.target.style.borderColor = "var(--border)")} />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Actual Price (€)</label>
+              <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Current Value (€)</label>
               <input type="number" step="0.01" min="0" value={form.actual_price} onChange={(e) => set("actual_price", e.target.value)} className={inputCls} style={inputStyle} placeholder="0.00"
                 onFocus={(e) => (e.target.style.borderColor = "var(--neon)")} onBlur={(e) => (e.target.style.borderColor = "var(--border)")} />
             </div>

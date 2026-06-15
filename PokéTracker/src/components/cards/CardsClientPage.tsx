@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Card, Profile, QUALITY_COLORS } from "@/types";
+import { Card, Profile } from "@/types";
 import CardModal from "./CardModal";
 import SoldModal from "./SoldModal";
 import { format } from "date-fns";
@@ -17,6 +17,9 @@ interface Props {
   initialTab: "actual" | "history";
 }
 
+type SortKey = "card_name" | "set_name" | "quality" | "price_bought" | "actual_price" | "price_sold" | "pl";
+type SortDir = "asc" | "desc";
+
 export default function CardsClientPage({ cards: initialCards, currentUserId, targetUserId, isOwn, currentUserProfile, targetProfile, initialTab }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -27,17 +30,50 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
   const [soldCard, setSoldCard] = useState<Card | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Card | null>(null);
   const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("card_name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const actualCards = cards.filter((c) => c.status === "actual");
   const historyCards = cards.filter((c) => c.status === "history");
+
+  const realisedProfit = (card: Card) =>
+    card.price_sold != null && card.price_bought != null ? card.price_sold - card.price_bought : null;
+  const unrealisedProfit = (card: Card) =>
+    card.actual_price != null && card.price_bought != null ? card.actual_price - card.price_bought : null;
+
+  function getSortValue(card: Card, key: SortKey): number | string {
+    switch (key) {
+      case "card_name": return card.card_name?.toLowerCase() ?? "";
+      case "set_name": return card.set_name?.toLowerCase() ?? "";
+      case "quality": return card.quality ?? "";
+      case "price_bought": return card.price_bought ?? -Infinity;
+      case "actual_price": return card.actual_price ?? -Infinity;
+      case "price_sold": return card.price_sold ?? -Infinity;
+      case "pl": return (tab === "actual" ? unrealisedProfit(card) : realisedProfit(card)) ?? -Infinity;
+    }
+  }
+
+  function handleSort(key: SortKey) {
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortKey(key); setSortDir("asc"); }
+  }
+
   const allDisplayed = tab === "actual" ? actualCards : historyCards;
-  const displayed = search.trim()
+  const filtered = search.trim()
     ? allDisplayed.filter((c) =>
         [c.card_name, c.set_name, c.card_id, c.card_number, c.quality]
           .filter(Boolean)
           .some((v) => v!.toLowerCase().includes(search.toLowerCase()))
       )
     : allDisplayed;
+
+  const displayed = [...filtered].sort((a, b) => {
+    const av = getSortValue(a, sortKey);
+    const bv = getSortValue(b, sortKey);
+    if (av < bv) return sortDir === "asc" ? -1 : 1;
+    if (av > bv) return sortDir === "asc" ? 1 : -1;
+    return 0;
+  });
 
   async function handleDelete(card: Card) {
     const res = await fetch(`/api/cards/${card.id}`, { method: "DELETE" });
@@ -54,11 +90,22 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
     setEditCard(null); setShowAdd(false);
   }
 
-  const realisedProfit = (card: Card) => card.price_sold != null && card.price_bought != null ? card.price_sold - card.price_bought : null;
-  const unrealisedProfit = (card: Card) => card.actual_price != null && card.price_bought != null ? card.actual_price - card.price_bought : null;
-  const profit = realisedProfit;
+  function SortIcon({ k }: { k: SortKey }) {
+    if (sortKey !== k) return <span style={{ color: "var(--text-muted)", marginLeft: 4 }}>↕</span>;
+    return <span style={{ color: "var(--neon)", marginLeft: 4 }}>{sortDir === "asc" ? "↑" : "↓"}</span>;
+  }
 
-  const inputStyle = { backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-primary)" };
+  function ThHeader({ k, label, right }: { k: SortKey; label: string; right?: boolean }) {
+    return (
+      <th
+        className={`px-4 py-3 font-semibold cursor-pointer select-none ${right ? "text-right" : "text-left"}`}
+        style={{ color: sortKey === k ? "var(--neon)" : "var(--text-secondary)" }}
+        onClick={() => handleSort(k)}
+      >
+        {label}<SortIcon k={k} />
+      </th>
+    );
+  }
 
   return (
     <div>
@@ -70,7 +117,7 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
           <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>{actualCards.length} owned · {historyCards.length} sold</p>
         </div>
         {isOwn && (
-          <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all" style={{ backgroundColor: "var(--neon)", color: "#000" }}>
+          <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg" style={{ backgroundColor: "var(--neon)", color: "#000" }}>
             <span>+</span> Add Card
           </button>
         )}
@@ -79,36 +126,30 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
       {/* Tabs + Search */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: "var(--bg-card)" }}>
-        {(["actual", "history"] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} className="px-4 py-1.5 rounded-lg text-sm font-medium transition-all"
-            style={{ backgroundColor: tab === t ? "var(--bg-elevated)" : "transparent", color: tab === t ? "var(--neon)" : "var(--text-secondary)", border: tab === t ? "1px solid var(--neon)33" : "1px solid transparent" }}>
-            {t === "actual" ? `Actual (${actualCards.length})` : `History (${historyCards.length})`}
-          </button>
-        ))}
+          {(["actual", "history"] as const).map((t) => (
+            <button key={t} onClick={() => setTab(t)} className="px-4 py-1.5 rounded-lg text-sm font-medium transition-all"
+              style={{ backgroundColor: tab === t ? "var(--bg-elevated)" : "transparent", color: tab === t ? "var(--neon)" : "var(--text-secondary)", border: tab === t ? "1px solid var(--neon)33" : "1px solid transparent" }}>
+              {t === "actual" ? `Actual (${actualCards.length})` : `History (${historyCards.length})`}
+            </button>
+          ))}
         </div>
         <div className="relative flex-1 max-w-xs">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: "var(--text-muted)" }}>🔍</span>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Search cards..." autoComplete="off"
             className="w-full pl-8 pr-3 py-1.5 rounded-lg text-sm outline-none"
             style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
             onFocus={(e) => (e.target.style.borderColor = "var(--neon)")}
-            onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
-          />
-          {search && (
-            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: "var(--text-muted)" }}>×</button>
-          )}
+            onBlur={(e) => (e.target.style.borderColor = "var(--border)")} />
+          {search && <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: "var(--text-muted)" }}>×</button>}
         </div>
       </div>
 
       {displayed.length === 0 ? (
-        <div className="text-center py-16" style={{ color: "var(--text-muted)" }}>
+        <div className="text-center py-16">
           <div className="text-5xl mb-3">🃏</div>
           <p className="font-medium" style={{ color: "var(--text-secondary)" }}>No cards here yet</p>
-          {isOwn && tab === "actual" && (
+          {isOwn && tab === "actual" && !search && (
             <button onClick={() => setShowAdd(true)} className="mt-4 text-sm font-medium" style={{ color: "var(--neon)" }}>Add your first card →</button>
           )}
         </div>
@@ -118,18 +159,19 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ backgroundColor: "var(--bg-elevated)", borderBottom: "1px solid var(--border)" }}>
-                  <th className="text-left px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>Card</th>
-                  <th className="text-left px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>Set</th>
-                  <th className="text-left px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>Quality</th>
-                  <th className="text-right px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>Bought</th>
-                  <th className="text-right px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>{tab === "actual" ? "Actual" : "Sold"}</th>
-                  <th className="text-right px-4 py-3 font-semibold" style={{ color: "var(--text-secondary)" }}>P&amp;L</th>
+                  <ThHeader k="card_name" label="Card" />
+                  <ThHeader k="set_name" label="Set" />
+                  <ThHeader k="quality" label="Quality" />
+                  <ThHeader k="price_bought" label="Bought" right />
+                  <ThHeader k={tab === "actual" ? "actual_price" : "price_sold"} label={tab === "actual" ? "Current Value" : "Sold"} right />
+                  <ThHeader k="pl" label="P&L" right />
                   {isOwn && <th className="px-4 py-3"></th>}
                 </tr>
               </thead>
               <tbody>
                 {displayed.map((card, i) => {
-                  const p = profit(card);
+                  const u = unrealisedProfit(card);
+                  const r = realisedProfit(card);
                   return (
                     <tr key={card.id} style={{ borderTop: i > 0 ? "1px solid var(--border)" : "none" }}
                       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-card-hover)")}
@@ -140,7 +182,7 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                       </td>
                       <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>{card.set_name ?? "—"}</td>
                       <td className="px-4 py-3">
-                        <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold" style={{ backgroundColor: "#00D4FF22", color: "var(--neon)", border: "1px solid #00D4FF44" }}>{card.quality}</span>
+                        <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold" style={{ backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }}>{card.quality}</span>
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div style={{ color: "var(--text-primary)" }}>{card.price_bought != null ? `€${card.price_bought.toFixed(2)}` : "—"}</div>
@@ -157,26 +199,20 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {tab === "actual" ? (() => {
-                          const u = unrealisedProfit(card);
-                          return u != null ? (
-                            <span className="font-semibold" style={{ color: u >= 0 ? "#00FF88" : "#FF6B6B" }}>{u >= 0 ? "+" : ""}€{u.toFixed(2)}</span>
-                          ) : <span style={{ color: "var(--text-muted)" }}>—</span>;
-                        })() : (() => {
-                          const r = realisedProfit(card);
-                          return r != null ? (
-                            <span className="font-semibold" style={{ color: r >= 0 ? "#00FF88" : "#FF6B6B" }}>{r >= 0 ? "+" : ""}€{r.toFixed(2)}</span>
-                          ) : <span style={{ color: "var(--text-muted)" }}>—</span>;
-                        })()}
+                        {tab === "actual" ? (
+                          u != null ? <span className="font-semibold" style={{ color: u >= 0 ? "#00FF88" : "#FF6B6B" }}>{u >= 0 ? "+" : ""}€{u.toFixed(2)}</span> : <span style={{ color: "var(--text-muted)" }}>—</span>
+                        ) : (
+                          r != null ? <span className="font-semibold" style={{ color: r >= 0 ? "#00FF88" : "#FF6B6B" }}>{r >= 0 ? "+" : ""}€{r.toFixed(2)}</span> : <span style={{ color: "var(--text-muted)" }}>—</span>
+                        )}
                       </td>
                       {isOwn && (
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
                             {tab === "actual" && (
-                              <button onClick={() => setSoldCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium transition-colors" style={{ backgroundColor: "#00FF8822", color: "#00FF88", border: "1px solid #00FF8844" }}>Sold</button>
+                              <button onClick={() => setSoldCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ backgroundColor: "#00FF8822", color: "#00FF88", border: "1px solid #00FF8844" }}>Sold</button>
                             )}
-                            <button onClick={() => setEditCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium transition-colors" style={{ backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid #00D4FF44" }}>Edit</button>
-                            <button onClick={() => setDeleteConfirm(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium transition-colors" style={{ backgroundColor: "#FF003322", color: "#FF6B6B", border: "1px solid #FF003344" }}>Delete</button>
+                            <button onClick={() => setEditCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }}>Edit</button>
+                            <button onClick={() => setDeleteConfirm(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ backgroundColor: "#FF003322", color: "#FF6B6B", border: "1px solid #FF003344" }}>Delete</button>
                           </div>
                         </td>
                       )}
