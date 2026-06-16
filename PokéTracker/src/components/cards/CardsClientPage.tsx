@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
 import { Card, Profile } from "@/types";
 import { POKEMON_SETS } from "@/lib/sets";
 import CardModal from "./CardModal";
@@ -21,9 +20,24 @@ interface Props {
 type SortKey = "card_name" | "set_name" | "quality" | "price_bought" | "actual_price" | "price_sold" | "pl";
 type SortDir = "asc" | "desc";
 
+type ColKey = "card_id" | "card_number" | "set" | "quality" | "bought" | "current_value" | "pl" | "extra_info";
+
+const ALL_COLUMNS: { key: ColKey; label: string }[] = [
+  { key: "card_id", label: "Card ID" },
+  { key: "card_number", label: "Card Number" },
+  { key: "set", label: "Set" },
+  { key: "quality", label: "Quality" },
+  { key: "bought", label: "Bought" },
+  { key: "current_value", label: "Current Value / Sold" },
+  { key: "pl", label: "P&L" },
+  { key: "extra_info", label: "Extra Info" },
+];
+
+const DEFAULT_VISIBLE: ColKey[] = ["set", "quality", "bought", "current_value", "pl"];
+
+const STORAGE_KEY = "poketracker_columns";
+
 export default function CardsClientPage({ cards: initialCards, currentUserId, targetUserId, isOwn, currentUserProfile, targetProfile, initialTab }: Props) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [cards, setCards] = useState<Card[]>(initialCards);
   const [tab, setTab] = useState<"actual" | "history">(initialTab);
   const [editCard, setEditCard] = useState<Card | null>(null);
@@ -33,6 +47,36 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("card_name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [visibleCols, setVisibleCols] = useState<ColKey[]>(DEFAULT_VISIBLE);
+  const [colMenuOpen, setColMenuOpen] = useState(false);
+  const colMenuRef = useRef<HTMLDivElement>(null);
+
+  // Load saved column preferences from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY + "_" + currentUserId);
+      if (saved) setVisibleCols(JSON.parse(saved));
+    } catch {}
+  }, [currentUserId]);
+
+  // Close col menu on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (colMenuRef.current && !colMenuRef.current.contains(e.target as Node)) setColMenuOpen(false);
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  function toggleCol(key: ColKey) {
+    setVisibleCols((prev) => {
+      const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
+      try { localStorage.setItem(STORAGE_KEY + "_" + currentUserId, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }
+
+  const show = (key: ColKey) => visibleCols.includes(key);
 
   const actualCards = cards.filter((c) => c.status === "actual");
   const historyCards = cards.filter((c) => c.status === "history");
@@ -98,11 +142,9 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
 
   function ThHeader({ k, label, right }: { k: SortKey; label: string; right?: boolean }) {
     return (
-      <th
-        className={`px-4 py-3 font-semibold cursor-pointer select-none ${right ? "text-right" : "text-left"}`}
+      <th className={`px-4 py-3 font-semibold cursor-pointer select-none ${right ? "text-right" : "text-left"}`}
         style={{ color: sortKey === k ? "var(--neon)" : "var(--text-secondary)" }}
-        onClick={() => handleSort(k)}
-      >
+        onClick={() => handleSort(k)}>
         {label}<SortIcon k={k} />
       </th>
     );
@@ -110,6 +152,7 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
 
   return (
     <div>
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
@@ -124,7 +167,7 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
         )}
       </div>
 
-      {/* Tabs + Search */}
+      {/* Tabs + Search + Columns */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: "var(--bg-card)" }}>
           {(["actual", "history"] as const).map((t) => (
@@ -134,6 +177,7 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
             </button>
           ))}
         </div>
+
         <div className="relative flex-1 max-w-xs">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: "var(--text-muted)" }}>🔍</span>
           <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
@@ -143,6 +187,64 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
             onFocus={(e) => (e.target.style.borderColor = "var(--neon)")}
             onBlur={(e) => (e.target.style.borderColor = "var(--border)")} />
           {search && <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: "var(--text-muted)" }}>×</button>}
+        </div>
+
+        {/* Columns toggle */}
+        <div className="relative" ref={colMenuRef}>
+          <button
+            onClick={() => setColMenuOpen((o) => !o)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+            style={{
+              backgroundColor: colMenuOpen ? "var(--neon-dim)" : "var(--bg-card)",
+              border: `1px solid ${colMenuOpen ? "var(--neon)44" : "var(--border)"}`,
+              color: colMenuOpen ? "var(--neon)" : "var(--text-secondary)",
+            }}
+          >
+            <span>⚙</span> Columns
+          </button>
+
+          {colMenuOpen && (
+            <div className="absolute right-0 top-10 z-50 rounded-xl shadow-xl w-52 overflow-hidden"
+              style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)" }}>
+              <div className="px-3 py-2.5" style={{ borderBottom: "1px solid var(--border)" }}>
+                <p className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>TOGGLE COLUMNS</p>
+              </div>
+              <div className="py-1">
+                {ALL_COLUMNS.map((col) => (
+                  <button
+                    key={col.key}
+                    onClick={() => toggleCol(col.key)}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors"
+                    style={{ color: "var(--text-primary)" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-elevated)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                  >
+                    <span className="w-4 h-4 rounded flex items-center justify-center text-xs flex-shrink-0"
+                      style={{
+                        backgroundColor: show(col.key) ? "var(--neon)" : "var(--bg-elevated)",
+                        border: `1px solid ${show(col.key) ? "var(--neon)" : "var(--border)"}`,
+                        color: "#000",
+                      }}>
+                      {show(col.key) ? "✓" : ""}
+                    </span>
+                    {col.label}
+                  </button>
+                ))}
+              </div>
+              <div className="px-3 py-2" style={{ borderTop: "1px solid var(--border)" }}>
+                <button
+                  onClick={() => {
+                    setVisibleCols(DEFAULT_VISIBLE);
+                    try { localStorage.removeItem(STORAGE_KEY + "_" + currentUserId); } catch {}
+                  }}
+                  className="text-xs w-full text-center"
+                  style={{ color: "var(--text-muted)" }}
+                >
+                  Reset to default
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -161,11 +263,11 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
               <thead>
                 <tr style={{ backgroundColor: "var(--bg-elevated)", borderBottom: "1px solid var(--border)" }}>
                   <ThHeader k="card_name" label="Card" />
-                  <ThHeader k="set_name" label="Set" />
-                  <ThHeader k="quality" label="Quality" />
-                  <ThHeader k="price_bought" label="Bought" right />
-                  <ThHeader k={tab === "actual" ? "actual_price" : "price_sold"} label={tab === "actual" ? "Current Value" : "Sold"} right />
-                  <ThHeader k="pl" label="P&L" right />
+                  {show("set") && <ThHeader k="set_name" label="Set" />}
+                  {show("quality") && <ThHeader k="quality" label="Quality" />}
+                  {show("bought") && <ThHeader k="price_bought" label="Bought" right />}
+                  {show("current_value") && <ThHeader k={tab === "actual" ? "actual_price" : "price_sold"} label={tab === "actual" ? "Current Value" : "Sold"} right />}
+                  {show("pl") && <ThHeader k="pl" label="P&L" right />}
                   {isOwn && <th className="px-4 py-3"></th>}
                 </tr>
               </thead>
@@ -179,39 +281,55 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}>
                       <td className="px-4 py-3">
                         <div className="font-medium" style={{ color: "var(--text-primary)" }}>{card.card_name}</div>
-                        <div className="text-xs" style={{ color: "var(--text-muted)" }}>{[card.card_id, card.card_number].filter(Boolean).join(" · ")}</div>
-                        {card.extra_info && <div className="text-xs mt-0.5 italic" style={{ color: "var(--text-secondary)" }}>{card.extra_info}</div>}
-                      </td>
-                      <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>
-                        {card.set_name ? (() => {
-                          const s = POKEMON_SETS.find((x) => x.code === card.set_name);
-                          return s ? <span title={s.series}>{s.name} <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>({s.code})</span></span> : card.set_name;
-                        })() : "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold" style={{ backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }}>{card.quality}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div style={{ color: "var(--text-primary)" }}>{card.price_bought != null ? `€${card.price_bought.toFixed(2)}` : "—"}</div>
-                        {card.date_bought && <div className="text-xs" style={{ color: "var(--text-muted)" }}>{format(new Date(card.date_bought), "dd/MM/yy")}</div>}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        {tab === "actual" ? (
-                          <div style={{ color: "var(--text-primary)" }}>{card.actual_price != null ? `€${card.actual_price.toFixed(2)}` : "—"}</div>
-                        ) : (
-                          <div>
-                            <div style={{ color: "var(--text-primary)" }}>{card.price_sold != null ? `€${card.price_sold.toFixed(2)}` : "—"}</div>
-                            {card.date_sold && <div className="text-xs" style={{ color: "var(--text-muted)" }}>{format(new Date(card.date_sold), "dd/MM/yy")}</div>}
-                          </div>
+                        {show("card_id") && card.card_id && (
+                          <div className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>ID: {card.card_id}</div>
+                        )}
+                        {show("card_number") && card.card_number && (
+                          <div className="text-xs" style={{ color: "var(--text-muted)" }}>#{card.card_number}</div>
+                        )}
+                        {show("extra_info") && card.extra_info && (
+                          <div className="text-xs mt-0.5 italic" style={{ color: "var(--text-secondary)" }}>{card.extra_info}</div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        {tab === "actual" ? (
-                          u != null ? <span className="font-semibold" style={{ color: u >= 0 ? "#00FF88" : "#FF6B6B" }}>{u >= 0 ? "+" : ""}€{u.toFixed(2)}</span> : <span style={{ color: "var(--text-muted)" }}>—</span>
-                        ) : (
-                          r != null ? <span className="font-semibold" style={{ color: r >= 0 ? "#00FF88" : "#FF6B6B" }}>{r >= 0 ? "+" : ""}€{r.toFixed(2)}</span> : <span style={{ color: "var(--text-muted)" }}>—</span>
-                        )}
-                      </td>
+                      {show("set") && (
+                        <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>
+                          {card.set_name ? (() => {
+                            const s = POKEMON_SETS.find((x) => x.code === card.set_name);
+                            return s ? <span title={s.series}>{s.name} <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>({s.code})</span></span> : card.set_name;
+                          })() : "—"}
+                        </td>
+                      )}
+                      {show("quality") && (
+                        <td className="px-4 py-3">
+                          <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold" style={{ backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }}>{card.quality || "—"}</span>
+                        </td>
+                      )}
+                      {show("bought") && (
+                        <td className="px-4 py-3 text-right">
+                          <div style={{ color: "var(--text-primary)" }}>{card.price_bought != null ? `€${card.price_bought.toFixed(2)}` : "—"}</div>
+                          {card.date_bought && <div className="text-xs" style={{ color: "var(--text-muted)" }}>{format(new Date(card.date_bought), "dd/MM/yy")}</div>}
+                        </td>
+                      )}
+                      {show("current_value") && (
+                        <td className="px-4 py-3 text-right">
+                          {tab === "actual" ? (
+                            <div style={{ color: "var(--text-primary)" }}>{card.actual_price != null ? `€${card.actual_price.toFixed(2)}` : "—"}</div>
+                          ) : (
+                            <div>
+                              <div style={{ color: "var(--text-primary)" }}>{card.price_sold != null ? `€${card.price_sold.toFixed(2)}` : "—"}</div>
+                              {card.date_sold && <div className="text-xs" style={{ color: "var(--text-muted)" }}>{format(new Date(card.date_sold), "dd/MM/yy")}</div>}
+                            </div>
+                          )}
+                        </td>
+                      )}
+                      {show("pl") && (
+                        <td className="px-4 py-3 text-right">
+                          {tab === "actual"
+                            ? u != null ? <span className="font-semibold" style={{ color: u >= 0 ? "#00FF88" : "#FF6B6B" }}>{u >= 0 ? "+" : ""}€{u.toFixed(2)}</span> : <span style={{ color: "var(--text-muted)" }}>—</span>
+                            : r != null ? <span className="font-semibold" style={{ color: r >= 0 ? "#00FF88" : "#FF6B6B" }}>{r >= 0 ? "+" : ""}€{r.toFixed(2)}</span> : <span style={{ color: "var(--text-muted)" }}>—</span>
+                          }
+                        </td>
+                      )}
                       {isOwn && (
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
