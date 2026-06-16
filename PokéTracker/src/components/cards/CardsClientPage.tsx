@@ -83,7 +83,7 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
   function getSortValue(card: Card, key: SortKey): number | string {
     switch (key) {
       case "card_name":    return card.card_name?.toLowerCase()  ?? "";
-      case "card_id":      return card.card_id?.toLowerCase()    ?? "";
+      case "card_id": { const n = card.card_id ?? ""; const num = parseFloat(n.replace(/[^0-9.]/g, "")); return isNaN(num) ? n.toLowerCase() : num; }
       case "card_number": { const n = card.card_number ?? ""; const num = parseFloat(n.replace(/[^0-9.]/g, "")); return isNaN(num) ? n.toLowerCase() : num; }
       case "set_name":     return card.set_name?.toLowerCase()   ?? "";
       case "quality":      return card.quality ?? "";
