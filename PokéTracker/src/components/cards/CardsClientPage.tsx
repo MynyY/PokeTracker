@@ -19,39 +19,36 @@ interface Props {
 
 type SortKey = "card_name" | "set_name" | "quality" | "price_bought" | "actual_price" | "price_sold" | "pl";
 type SortDir = "asc" | "desc";
-
 type ColKey = "card_id" | "card_number" | "set" | "quality" | "bought" | "current_value" | "pl" | "extra_info";
 
 const ALL_COLUMNS: { key: ColKey; label: string }[] = [
-  { key: "card_id", label: "Card ID" },
-  { key: "card_number", label: "Card Number" },
-  { key: "set", label: "Set" },
-  { key: "quality", label: "Quality" },
-  { key: "bought", label: "Bought" },
+  { key: "card_id",       label: "Card ID" },
+  { key: "card_number",   label: "Card Number" },
+  { key: "set",           label: "Set" },
+  { key: "quality",       label: "Quality" },
+  { key: "bought",        label: "Bought" },
   { key: "current_value", label: "Current Value / Sold" },
-  { key: "pl", label: "P&L" },
-  { key: "extra_info", label: "Extra Info" },
+  { key: "pl",            label: "P&L" },
+  { key: "extra_info",    label: "Extra Info" },
 ];
 
 const DEFAULT_VISIBLE: ColKey[] = ["set", "quality", "bought", "current_value", "pl"];
-
 const STORAGE_KEY = "poketracker_columns";
 
 export default function CardsClientPage({ cards: initialCards, currentUserId, targetUserId, isOwn, currentUserProfile, targetProfile, initialTab }: Props) {
-  const [cards, setCards] = useState<Card[]>(initialCards);
-  const [tab, setTab] = useState<"actual" | "history">(initialTab);
-  const [editCard, setEditCard] = useState<Card | null>(null);
-  const [showAdd, setShowAdd] = useState(false);
-  const [soldCard, setSoldCard] = useState<Card | null>(null);
+  const [cards, setCards]               = useState<Card[]>(initialCards);
+  const [tab, setTab]                   = useState<"actual" | "history">(initialTab);
+  const [editCard, setEditCard]         = useState<Card | null>(null);
+  const [showAdd, setShowAdd]           = useState(false);
+  const [soldCard, setSoldCard]         = useState<Card | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Card | null>(null);
-  const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("card_name");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [visibleCols, setVisibleCols] = useState<ColKey[]>(DEFAULT_VISIBLE);
-  const [colMenuOpen, setColMenuOpen] = useState(false);
+  const [search, setSearch]             = useState("");
+  const [sortKey, setSortKey]           = useState<SortKey>("card_name");
+  const [sortDir, setSortDir]           = useState<SortDir>("asc");
+  const [visibleCols, setVisibleCols]   = useState<ColKey[]>(DEFAULT_VISIBLE);
+  const [colMenuOpen, setColMenuOpen]   = useState(false);
   const colMenuRef = useRef<HTMLDivElement>(null);
 
-  // Load saved column preferences from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY + "_" + currentUserId);
@@ -59,7 +56,6 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
     } catch {}
   }, [currentUserId]);
 
-  // Close col menu on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (colMenuRef.current && !colMenuRef.current.contains(e.target as Node)) setColMenuOpen(false);
@@ -78,22 +74,20 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
 
   const show = (key: ColKey) => visibleCols.includes(key);
 
-  const actualCards = cards.filter((c) => c.status === "actual");
+  const actualCards  = cards.filter((c) => c.status === "actual");
   const historyCards = cards.filter((c) => c.status === "history");
 
-  const realisedProfit = (card: Card) =>
-    card.price_sold != null && card.price_bought != null ? card.price_sold - card.price_bought : null;
-  const unrealisedProfit = (card: Card) =>
-    card.actual_price != null && card.price_bought != null ? card.actual_price - card.price_bought : null;
+  const realisedProfit  = (c: Card) => c.price_sold  != null && c.price_bought != null ? c.price_sold  - c.price_bought : null;
+  const unrealisedProfit = (c: Card) => c.actual_price != null && c.price_bought != null ? c.actual_price - c.price_bought : null;
 
   function getSortValue(card: Card, key: SortKey): number | string {
     switch (key) {
-      case "card_name": return card.card_name?.toLowerCase() ?? "";
-      case "set_name": return card.set_name?.toLowerCase() ?? "";
-      case "quality": return card.quality ?? "";
-      case "price_bought": return card.price_bought ?? -Infinity;
-      case "actual_price": return card.actual_price ?? -Infinity;
-      case "price_sold": return card.price_sold ?? -Infinity;
+      case "card_name":   return card.card_name?.toLowerCase() ?? "";
+      case "set_name":    return card.set_name?.toLowerCase()  ?? "";
+      case "quality":     return card.quality ?? "";
+      case "price_bought":  return card.price_bought  ?? -Infinity;
+      case "actual_price":  return card.actual_price  ?? -Infinity;
+      case "price_sold":    return card.price_sold    ?? -Infinity;
       case "pl": return (tab === "actual" ? unrealisedProfit(card) : realisedProfit(card)) ?? -Infinity;
     }
   }
@@ -126,12 +120,22 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
   }
 
   async function handleSold(card: Card, priceSold: number, dateSold: string) {
-    const res = await fetch(`/api/cards/${card.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: "history", price_sold: priceSold, date_sold: dateSold }) });
-    if (res.ok) { const { card: updated } = await res.json(); setCards((prev) => prev.map((c) => (c.id === updated.id ? updated : c))); setSoldCard(null); }
+    const res = await fetch(`/api/cards/${card.id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "history", price_sold: priceSold, date_sold: dateSold }),
+    });
+    if (res.ok) {
+      const { card: updated } = await res.json();
+      setCards((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      setSoldCard(null);
+    }
   }
 
   function handleCardSaved(card: Card) {
-    setCards((prev) => { const exists = prev.find((c) => c.id === card.id); return exists ? prev.map((c) => (c.id === card.id ? card : c)) : [card, ...prev]; });
+    setCards((prev) => {
+      const exists = prev.find((c) => c.id === card.id);
+      return exists ? prev.map((c) => (c.id === card.id ? card : c)) : [card, ...prev];
+    });
     setEditCard(null); setShowAdd(false);
   }
 
@@ -189,18 +193,12 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
           {search && <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: "var(--text-muted)" }}>×</button>}
         </div>
 
-        {/* Columns toggle */}
+        {/* Columns dropdown */}
         <div className="relative" ref={colMenuRef}>
-          <button
-            onClick={() => setColMenuOpen((o) => !o)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
-            style={{
-              backgroundColor: colMenuOpen ? "var(--neon-dim)" : "var(--bg-card)",
-              border: `1px solid ${colMenuOpen ? "var(--neon)44" : "var(--border)"}`,
-              color: colMenuOpen ? "var(--neon)" : "var(--text-secondary)",
-            }}
-          >
-            <span>⚙</span> Columns
+          <button onClick={() => setColMenuOpen((o) => !o)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium"
+            style={{ backgroundColor: colMenuOpen ? "var(--neon-dim)" : "var(--bg-card)", border: `1px solid ${colMenuOpen ? "var(--neon)44" : "var(--border)"}`, color: colMenuOpen ? "var(--neon)" : "var(--text-secondary)" }}>
+            ⚙ Columns {visibleCols.length !== DEFAULT_VISIBLE.length && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--neon)", color: "#000" }}>{visibleCols.length}</span>}
           </button>
 
           {colMenuOpen && (
@@ -211,20 +209,13 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
               </div>
               <div className="py-1">
                 {ALL_COLUMNS.map((col) => (
-                  <button
-                    key={col.key}
-                    onClick={() => toggleCol(col.key)}
-                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-left transition-colors"
+                  <button key={col.key} onClick={() => toggleCol(col.key)}
+                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-left"
                     style={{ color: "var(--text-primary)" }}
                     onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-elevated)")}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                  >
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}>
                     <span className="w-4 h-4 rounded flex items-center justify-center text-xs flex-shrink-0"
-                      style={{
-                        backgroundColor: show(col.key) ? "var(--neon)" : "var(--bg-elevated)",
-                        border: `1px solid ${show(col.key) ? "var(--neon)" : "var(--border)"}`,
-                        color: "#000",
-                      }}>
+                      style={{ backgroundColor: show(col.key) ? "var(--neon)" : "var(--bg-elevated)", border: `1px solid ${show(col.key) ? "var(--neon)" : "var(--border)"}`, color: "#000" }}>
                       {show(col.key) ? "✓" : ""}
                     </span>
                     {col.label}
@@ -232,14 +223,8 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                 ))}
               </div>
               <div className="px-3 py-2" style={{ borderTop: "1px solid var(--border)" }}>
-                <button
-                  onClick={() => {
-                    setVisibleCols(DEFAULT_VISIBLE);
-                    try { localStorage.removeItem(STORAGE_KEY + "_" + currentUserId); } catch {}
-                  }}
-                  className="text-xs w-full text-center"
-                  style={{ color: "var(--text-muted)" }}
-                >
+                <button onClick={() => { setVisibleCols(DEFAULT_VISIBLE); try { localStorage.removeItem(STORAGE_KEY + "_" + currentUserId); } catch {} }}
+                  className="text-xs w-full text-center" style={{ color: "var(--text-muted)" }}>
                   Reset to default
                 </button>
               </div>
@@ -262,12 +247,17 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ backgroundColor: "var(--bg-elevated)", borderBottom: "1px solid var(--border)" }}>
+                  {/* Card name always visible */}
                   <ThHeader k="card_name" label="Card" />
-                  {show("set") && <ThHeader k="set_name" label="Set" />}
-                  {show("quality") && <ThHeader k="quality" label="Quality" />}
-                  {show("bought") && <ThHeader k="price_bought" label="Bought" right />}
+                  {/* Optional columns */}
+                  {show("card_id")       && <th className="px-4 py-3 font-semibold text-left" style={{ color: "var(--text-secondary)" }}>Card ID</th>}
+                  {show("card_number")   && <th className="px-4 py-3 font-semibold text-left" style={{ color: "var(--text-secondary)" }}>Number</th>}
+                  {show("set")           && <ThHeader k="set_name" label="Set" />}
+                  {show("quality")       && <ThHeader k="quality" label="Quality" />}
+                  {show("extra_info")    && <th className="px-4 py-3 font-semibold text-left" style={{ color: "var(--text-secondary)" }}>Extra Info</th>}
+                  {show("bought")        && <ThHeader k="price_bought" label="Bought" right />}
                   {show("current_value") && <ThHeader k={tab === "actual" ? "actual_price" : "price_sold"} label={tab === "actual" ? "Current Value" : "Sold"} right />}
-                  {show("pl") && <ThHeader k="pl" label="P&L" right />}
+                  {show("pl")            && <ThHeader k="pl" label="P&L" right />}
                   {isOwn && <th className="px-4 py-3"></th>}
                 </tr>
               </thead>
@@ -279,37 +269,63 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                     <tr key={card.id} style={{ borderTop: i > 0 ? "1px solid var(--border)" : "none" }}
                       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-card-hover)")}
                       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}>
+
+                      {/* Card name — always visible */}
                       <td className="px-4 py-3">
                         <div className="font-medium" style={{ color: "var(--text-primary)" }}>{card.card_name}</div>
-                        {show("card_id") && card.card_id && (
-                          <div className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>ID: {card.card_id}</div>
-                        )}
-                        {show("card_number") && card.card_number && (
-                          <div className="text-xs" style={{ color: "var(--text-muted)" }}>#{card.card_number}</div>
-                        )}
-                        {show("extra_info") && card.extra_info && (
-                          <div className="text-xs mt-0.5 italic" style={{ color: "var(--text-secondary)" }}>{card.extra_info}</div>
-                        )}
                       </td>
+
+                      {/* Card ID column */}
+                      {show("card_id") && (
+                        <td className="px-4 py-3 font-mono text-xs" style={{ color: "var(--text-secondary)" }}>
+                          {card.card_id || "—"}
+                        </td>
+                      )}
+
+                      {/* Card Number column */}
+                      {show("card_number") && (
+                        <td className="px-4 py-3 text-xs" style={{ color: "var(--text-secondary)" }}>
+                          {card.card_number ? `#${card.card_number}` : "—"}
+                        </td>
+                      )}
+
+                      {/* Set column */}
                       {show("set") && (
                         <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>
                           {card.set_name ? (() => {
                             const s = POKEMON_SETS.find((x) => x.code === card.set_name);
-                            return s ? <span title={s.series}>{s.name} <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>({s.code})</span></span> : card.set_name;
+                            return s
+                              ? <span title={s.series}>{s.name} <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>({s.code})</span></span>
+                              : card.set_name;
                           })() : "—"}
                         </td>
                       )}
+
+                      {/* Quality column */}
                       {show("quality") && (
                         <td className="px-4 py-3">
-                          <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold" style={{ backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }}>{card.quality || "—"}</span>
+                          {card.quality
+                            ? <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold" style={{ backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }}>{card.quality}</span>
+                            : <span style={{ color: "var(--text-muted)" }}>—</span>}
                         </td>
                       )}
+
+                      {/* Extra Info column */}
+                      {show("extra_info") && (
+                        <td className="px-4 py-3 text-xs italic" style={{ color: "var(--text-secondary)" }}>
+                          {card.extra_info || "—"}
+                        </td>
+                      )}
+
+                      {/* Bought column */}
                       {show("bought") && (
                         <td className="px-4 py-3 text-right">
                           <div style={{ color: "var(--text-primary)" }}>{card.price_bought != null ? `€${card.price_bought.toFixed(2)}` : "—"}</div>
                           {card.date_bought && <div className="text-xs" style={{ color: "var(--text-muted)" }}>{format(new Date(card.date_bought), "dd/MM/yy")}</div>}
                         </td>
                       )}
+
+                      {/* Current Value / Sold column */}
                       {show("current_value") && (
                         <td className="px-4 py-3 text-right">
                           {tab === "actual" ? (
@@ -322,6 +338,8 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                           )}
                         </td>
                       )}
+
+                      {/* P&L column */}
                       {show("pl") && (
                         <td className="px-4 py-3 text-right">
                           {tab === "actual"
@@ -330,6 +348,8 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                           }
                         </td>
                       )}
+
+                      {/* Actions */}
                       {isOwn && (
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
