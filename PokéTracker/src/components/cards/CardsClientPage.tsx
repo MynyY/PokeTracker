@@ -17,7 +17,7 @@ interface Props {
   initialTab: "actual" | "history";
 }
 
-type SortKey = "card_name" | "set_name" | "quality" | "price_bought" | "actual_price" | "price_sold" | "pl";
+type SortKey = "card_name" | "card_id" | "card_number" | "set_name" | "quality" | "extra_info" | "price_bought" | "actual_price" | "price_sold" | "pl";
 type SortDir = "asc" | "desc";
 type ColKey = "card_id" | "card_number" | "set" | "quality" | "bought" | "current_value" | "pl" | "extra_info";
 
@@ -82,12 +82,15 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
 
   function getSortValue(card: Card, key: SortKey): number | string {
     switch (key) {
-      case "card_name":   return card.card_name?.toLowerCase() ?? "";
-      case "set_name":    return card.set_name?.toLowerCase()  ?? "";
-      case "quality":     return card.quality ?? "";
-      case "price_bought":  return card.price_bought  ?? -Infinity;
-      case "actual_price":  return card.actual_price  ?? -Infinity;
-      case "price_sold":    return card.price_sold    ?? -Infinity;
+      case "card_name":    return card.card_name?.toLowerCase()  ?? "";
+      case "card_id":      return card.card_id?.toLowerCase()    ?? "";
+      case "card_number":  return card.card_number?.toLowerCase() ?? "";
+      case "set_name":     return card.set_name?.toLowerCase()   ?? "";
+      case "quality":      return card.quality ?? "";
+      case "extra_info":   return card.extra_info?.toLowerCase() ?? "";
+      case "price_bought": return card.price_bought  ?? -Infinity;
+      case "actual_price": return card.actual_price  ?? -Infinity;
+      case "price_sold":   return card.price_sold    ?? -Infinity;
       case "pl": return (tab === "actual" ? unrealisedProfit(card) : realisedProfit(card)) ?? -Infinity;
     }
   }
@@ -250,11 +253,11 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                   {/* Card name always visible */}
                   <ThHeader k="card_name" label="Card" />
                   {/* Optional columns */}
-                  {show("card_id")       && <th className="px-4 py-3 font-semibold text-left" style={{ color: "var(--text-secondary)" }}>Card ID</th>}
-                  {show("card_number")   && <th className="px-4 py-3 font-semibold text-left" style={{ color: "var(--text-secondary)" }}>Number</th>}
+                  {show("card_id")       && <ThHeader k="card_id" label="Card ID" />}
+                  {show("card_number")   && <ThHeader k="card_number" label="Number" />}
                   {show("set")           && <ThHeader k="set_name" label="Set" />}
                   {show("quality")       && <ThHeader k="quality" label="Quality" />}
-                  {show("extra_info")    && <th className="px-4 py-3 font-semibold text-left" style={{ color: "var(--text-secondary)" }}>Extra Info</th>}
+                  {show("extra_info")    && <ThHeader k="extra_info" label="Extra Info" />}
                   {show("bought")        && <ThHeader k="price_bought" label="Bought" right />}
                   {show("current_value") && <ThHeader k={tab === "actual" ? "actual_price" : "price_sold"} label={tab === "actual" ? "Current Value" : "Sold"} right />}
                   {show("pl")            && <ThHeader k="pl" label="P&L" right />}
