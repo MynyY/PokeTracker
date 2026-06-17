@@ -29,9 +29,10 @@ export default function SalesClientPage({ cards }: Props) {
   const grouped = useMemo(() => {
     const map: Record<string, Card[]> = {};
     for (const card of cards) {
-      if (!card.date_sold) continue;
-      if (!map[card.date_sold]) map[card.date_sold] = [];
-      map[card.date_sold].push(card);
+      // Normalize date to YYYY-MM-DD, fallback to "unknown"
+      const dateKey = card.date_sold ? card.date_sold.split("T")[0] : "unknown";
+      if (!map[dateKey]) map[dateKey] = [];
+      map[dateKey].push(card);
     }
     return Object.entries(map).map(([date, dayCards]): DaySummary => ({
       date,
@@ -175,7 +176,7 @@ export default function SalesClientPage({ cards }: Props) {
                         {expanded === day.date ? "▾" : "▸"}
                       </td>
                       <td className="px-4 py-3 font-medium" style={{ color: "var(--text-primary)" }}>
-                        {format(new Date(day.date), "dd/MM/yyyy")}
+                        {day.date === "unknown" ? "No date" : format(new Date(day.date), "dd/MM/yyyy")}
                       </td>
                       <td className="px-4 py-3 text-right" style={{ color: "var(--text-secondary)" }}>
                         {day.cards.length}

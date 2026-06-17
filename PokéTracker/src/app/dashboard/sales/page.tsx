@@ -7,12 +7,13 @@ export default async function SalesPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/auth/login");
 
-  const { data: cards } = await supabase
+  // Fetch ALL sold cards (both collection and inventory, excluding wishlist)
+  const { data: cards, error } = await supabase
     .from("cards")
     .select("*")
     .eq("user_id", user.id)
     .eq("status", "history")
-    .not("date_sold", "is", null);
+    .eq("is_wishlist", false);
 
   return <SalesClientPage cards={cards ?? []} />;
 }
