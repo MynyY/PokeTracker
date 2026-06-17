@@ -26,6 +26,7 @@ export interface Card {
   actual_price: number | null;
   extra_info: string | null;
   status: CardStatus;
+  is_wishlist: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -32,6 +32,7 @@ export default async function CardsPage({
     .from("cards")
     .select("*")
     .eq("user_id", targetUserId)
+    .eq("is_wishlist", false)
     .order("created_at", { ascending: false });
 
   return (
