@@ -465,12 +465,32 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                               <button onClick={() => setSoldCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ backgroundColor: "#00FF8822", color: "#00FF88", border: "1px solid #00FF8844" }}>Sold</button>
                             )}
                             {tab === "actual" && (
-                              <button onClick={() => setMoveCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ backgroundColor: "#88448822", color: "#CC88FF", border: "1px solid #88448844" }}>
+                              <button
+                                onClick={() => {
+                                  if (selected.size > 0 && selected.has(card.id)) {
+                                    // If this card is part of selection, bulk move all selected
+                                    setBulkAction("move");
+                                  } else {
+                                    // Single card move
+                                    setMoveCard(card);
+                                  }
+                                }}
+                                className="text-xs px-2.5 py-1 rounded-lg font-medium"
+                                style={{ backgroundColor: "#88448822", color: "#CC88FF", border: "1px solid #88448844" }}>
                                 {collectionType === "collection" ? "→ Inv" : "→ Col"}
                               </button>
                             )}
                             <button onClick={() => setEditCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }}>Edit</button>
-                            <button onClick={() => setDeleteConfirm(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ backgroundColor: "#FF003322", color: "#FF6B6B", border: "1px solid #FF003344" }}>Delete</button>
+                            <button
+                              onClick={() => {
+                                if (selected.size > 0 && selected.has(card.id)) {
+                                  setBulkAction("delete");
+                                } else {
+                                  setDeleteConfirm(card);
+                                }
+                              }}
+                              className="text-xs px-2.5 py-1 rounded-lg font-medium"
+                              style={{ backgroundColor: "#FF003322", color: "#FF6B6B", border: "1px solid #FF003344" }}>Delete</button>
                           </div>
                         </td>
                       )}
