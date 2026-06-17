@@ -63,7 +63,7 @@ export default function WishlistClientPage({ cards: initialCards, userId }: Prop
     setEditCard(null);
   }
 
-  async function handleBought(card: Card, quality: CardQuality, priceBought: number, dateBought: string) {
+  async function handleBought(card: Card, quality: CardQuality, priceBought: number, dateBought: string, destination: 'collection' | 'inventory') {
     const res = await fetch(`/api/cards/${card.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -72,6 +72,7 @@ export default function WishlistClientPage({ cards: initialCards, userId }: Prop
         quality,
         price_bought: priceBought,
         date_bought: dateBought,
+        collection_type: destination,
       }),
     });
     if (res.ok) {

@@ -4,9 +4,9 @@ import { useState } from "react";
 import { Card, CardQuality, QUALITY_OPTIONS } from "@/types";
 import SetSelector from "./SetSelector";
 
-interface Props { card?: Card; userId: string; onSave: (card: Card) => void; onSaveAndContinue?: (card: Card) => void; onClose: () => void; }
+interface Props { card?: Card; userId: string; collectionType?: 'collection' | 'inventory'; onSave: (card: Card) => void; onSaveAndContinue?: (card: Card) => void; onClose: () => void; }
 
-export default function CardModal({ card, userId, onSave, onSaveAndContinue, onClose }: Props) {
+export default function CardModal({ card, userId, collectionType = 'collection', onSave, onSaveAndContinue, onClose }: Props) {
   const isEdit = !!card;
   const [form, setForm] = useState({
     card_name: card?.card_name ?? "", card_number: card?.card_number ?? "", card_id: card?.card_id ?? "",
@@ -33,6 +33,7 @@ export default function CardModal({ card, userId, onSave, onSaveAndContinue, onC
       date_sold: form.date_sold || null,
       actual_price: form.actual_price ? parseFloat(form.actual_price) : null,
       extra_info: form.extra_info || null,
+      collection_type: collectionType,
     };
     const res = await fetch(isEdit ? `/api/cards/${card!.id}` : "/api/cards", {
       method: isEdit ? "PATCH" : "POST", headers: { "Content-Type": "application/json" },

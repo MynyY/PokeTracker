@@ -15,6 +15,8 @@ interface Props {
   currentUserProfile: Profile | null;
   targetProfile: Profile | null;
   initialTab: "actual" | "history";
+  collectionType?: "collection" | "inventory";
+  pageTitle?: string;
 }
 
 type SortKey = "card_name" | "card_id" | "card_number" | "set_name" | "quality" | "extra_info" | "price_bought" | "actual_price" | "price_sold" | "pl";
@@ -35,13 +37,14 @@ const ALL_COLUMNS: { key: ColKey; label: string }[] = [
 const DEFAULT_VISIBLE: ColKey[] = ["set", "quality", "bought", "current_value", "pl"];
 const STORAGE_KEY = "poketracker_columns";
 
-export default function CardsClientPage({ cards: initialCards, currentUserId, targetUserId, isOwn, currentUserProfile, targetProfile, initialTab }: Props) {
+export default function CardsClientPage({ cards: initialCards, currentUserId, targetUserId, isOwn, currentUserProfile, targetProfile, initialTab, collectionType = 'collection', pageTitle }: Props) {
   const [cards, setCards]               = useState<Card[]>(initialCards);
   const [tab, setTab]                   = useState<"actual" | "history">(initialTab);
   const [editCard, setEditCard]         = useState<Card | null>(null);
   const [showAdd, setShowAdd]           = useState(false);
   const [soldCard, setSoldCard]         = useState<Card | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Card | null>(null);
+  const [moveCard, setMoveCard]             = useState<Card | null>(null);
   const [search, setSearch]             = useState("");
   const [sortKey, setSortKey]           = useState<SortKey>("card_name");
   const [sortDir, setSortDir]           = useState<SortDir>("asc");
@@ -122,6 +125,19 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
     if (res.ok) { setCards((prev) => prev.filter((c) => c.id !== card.id)); setDeleteConfirm(null); }
   }
 
+  async function handleMove(card: Card) {
+    const targetType = collectionType === "collection" ? "inventory" : "collection";
+    const res = await fetch(`/api/cards/${card.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ collection_type: targetType }),
+    });
+    if (res.ok) {
+      setCards((prev) => prev.filter((c) => c.id !== card.id));
+      setMoveCard(null);
+    }
+  }
+
   async function handleSold(card: Card, priceSold: number, dateSold: string) {
     const res = await fetch(`/api/cards/${card.id}`, {
       method: "PATCH", headers: { "Content-Type": "application/json" },
@@ -173,7 +189,7 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
-            {isOwn ? "My Collection" : `${targetProfile?.username}'s Cards`}
+            {isOwn ? (pageTitle ?? "My Collection") : `${targetProfile?.username}'s Cards`}
           </h1>
           <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>{actualCards.length} owned · {historyCards.length} sold</p>
         </div>
@@ -369,6 +385,11 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                             {tab === "actual" && (
                               <button onClick={() => setSoldCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ backgroundColor: "#00FF8822", color: "#00FF88", border: "1px solid #00FF8844" }}>Sold</button>
                             )}
+                            {tab === "actual" && (
+                              <button onClick={() => setMoveCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ backgroundColor: "#88448822", color: "#CC88FF", border: "1px solid #88448844" }}>
+                                {collectionType === "collection" ? "→ Inventory" : "→ Collection"}
+                              </button>
+                            )}
                             <button onClick={() => setEditCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }}>Edit</button>
                             <button onClick={() => setDeleteConfirm(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ backgroundColor: "#FF003322", color: "#FF6B6B", border: "1px solid #FF003344" }}>Delete</button>
                           </div>
@@ -383,7 +404,26 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
         </div>
       )}
 
-      {(showAdd || editCard) && <CardModal card={editCard ?? undefined} userId={targetUserId} onSave={handleCardSaved} onSaveAndContinue={showAdd ? handleCardSavedAndContinue : undefined} onClose={() => { setShowAdd(false); setEditCard(null); }} />}
+      {moveCard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.8)" }}>
+          <div className="rounded-2xl p-6 w-full max-w-sm" style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)" }}>
+            <h3 className="font-bold text-lg mb-2" style={{ color: "var(--text-primary)" }}>
+              Move to {collectionType === "collection" ? "Inventory" : "My Collection"}
+            </h3>
+            <p className="text-sm mb-5" style={{ color: "var(--text-secondary)" }}>
+              Move <strong style={{ color: "var(--text-primary)" }}>{moveCard.card_name}</strong> to your {collectionType === "collection" ? "Inventory" : "Collection"}?
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setMoveCard(null)} className="flex-1 px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>Cancel</button>
+              <button onClick={() => handleMove(moveCard)} className="flex-1 px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: "#88448844", border: "1px solid #88448866", color: "#CC88FF" }}>Move</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(showAdd || editCard) && <CardModal card={editCard ?? undefined} userId={targetUserId} collectionType={collectionType} onSave={handleCardSaved} onSaveAndContinue={showAdd ? handleCardSavedAndContinue : undefined} onClose={() => { setShowAdd(false); setEditCard(null); }} />}
       {soldCard && <SoldModal card={soldCard} onConfirm={handleSold} onClose={() => setSoldCard(null)} />}
 
       {deleteConfirm && (

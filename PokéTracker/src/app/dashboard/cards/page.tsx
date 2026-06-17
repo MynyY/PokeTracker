@@ -33,6 +33,7 @@ export default async function CardsPage({
     .select("*")
     .eq("user_id", targetUserId)
     .eq("is_wishlist", false)
+    .eq("collection_type", "collection")
     .order("created_at", { ascending: false });
 
   return (
@@ -44,6 +45,8 @@ export default async function CardsPage({
       currentUserProfile={profile}
       targetProfile={targetProfile}
       initialTab={(tab as "actual" | "history") ?? "actual"}
+      collectionType="collection"
+      pageTitle={isOwn ? "My Collection" : undefined}
     />
   );
 }

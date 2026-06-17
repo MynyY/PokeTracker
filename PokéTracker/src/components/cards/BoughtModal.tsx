@@ -5,7 +5,7 @@ import { Card, CardQuality, QUALITY_OPTIONS } from "@/types";
 
 interface Props {
   card: Card;
-  onConfirm: (card: Card, quality: CardQuality, priceBought: number, dateBought: string) => Promise<void>;
+  onConfirm: (card: Card, quality: CardQuality, priceBought: number, dateBought: string, destination: 'collection' | 'inventory') => Promise<void>;
   onClose: () => void;
 }
 
@@ -14,6 +14,7 @@ export default function BoughtModal({ card, onConfirm, onClose }: Props) {
   const [quality, setQuality] = useState<CardQuality>("NM");
   const [priceBought, setPriceBought] = useState("");
   const [dateBought, setDateBought] = useState(today);
+  const [destination, setDestination] = useState<'collection' | 'inventory'>('collection');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +23,7 @@ export default function BoughtModal({ card, onConfirm, onClose }: Props) {
     if (!priceBought) { setError("Please enter a price."); return; }
     setLoading(true);
     setError(null);
-    await onConfirm(card, quality, parseFloat(priceBought), dateBought);
+    await onConfirm(card, quality, parseFloat(priceBought), dateBought, destination);
     setLoading(false);
   }
 
@@ -67,6 +68,15 @@ export default function BoughtModal({ card, onConfirm, onClose }: Props) {
               className={inputCls} style={{ ...inputStyle, colorScheme: "dark" }}
               onFocus={(e) => (e.target.style.borderColor = "var(--neon)")}
               onBlur={(e) => (e.target.style.borderColor = "var(--border)")} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Add to</label>
+            <select value={destination} onChange={(e) => setDestination(e.target.value as 'collection' | 'inventory')}
+              className={inputCls} style={inputStyle}>
+              <option value="collection">My Collection</option>
+              <option value="inventory">Inventory</option>
+            </select>
           </div>
 
           <div className="flex gap-3 pt-1">
