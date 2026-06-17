@@ -18,6 +18,7 @@ export default function CardModal({ card, userId, onSave, onClose }: Props) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [addAnother, setAddAnother] = useState(false);
 
   function set(key: string, value: string) { setForm((prev) => ({ ...prev, [key]: value })); }
 
@@ -39,7 +40,20 @@ export default function CardModal({ card, userId, onSave, onClose }: Props) {
     });
     const data = await res.json();
     if (!res.ok) { setError(data.error ?? "Something went wrong"); setLoading(false); return; }
-    onSave(data.card); setLoading(false);
+    onSave(data.card);
+    if (addAnother) {
+      // Reset form for next card
+      setForm({
+        card_name: "", card_number: "", card_id: "",
+        set_name: form.set_name, // keep set
+        quality: form.quality,   // keep quality
+        price_bought: "", date_bought: form.date_bought, // keep date
+        price_sold: "", date_sold: "", actual_price: "", extra_info: "",
+      });
+      setError(null);
+      setAddAnother(false);
+    }
+    setLoading(false);
   }
 
   const inputCls = "w-full px-3 py-2 rounded-lg text-sm outline-none transition-all";
@@ -123,11 +137,24 @@ export default function CardModal({ card, userId, onSave, onClose }: Props) {
               />
             </div>
           </div>
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium" style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>Cancel</button>
-            <button type="submit" disabled={loading} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: "var(--neon)", color: "#000", opacity: loading ? 0.6 : 1 }}>
-              {loading ? "Saving…" : isEdit ? "Save Changes" : "Add Card"}
-            </button>
+          <div className="flex flex-col gap-2 pt-2">
+            {!isEdit && (
+              <button
+                type="submit"
+                disabled={loading}
+                onClick={() => setAddAnother(true)}
+                className="w-full px-4 py-2.5 rounded-lg text-sm font-semibold"
+                style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--neon)44", color: "var(--neon)", opacity: loading ? 0.6 : 1 }}
+              >
+                {loading && addAnother ? "Saving…" : "+ Add Another One"}
+              </button>
+            )}
+            <div className="flex gap-3">
+              <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium" style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>Cancel</button>
+              <button type="submit" disabled={loading} onClick={() => setAddAnother(false)} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: "var(--neon)", color: "#000", opacity: loading ? 0.6 : 1 }}>
+                {loading && !addAnother ? "Saving…" : isEdit ? "Save Changes" : "Add Card"}
+              </button>
+            </div>
           </div>
         </form>
       </div>
