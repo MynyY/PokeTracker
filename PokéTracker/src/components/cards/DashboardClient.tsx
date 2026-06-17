@@ -31,7 +31,7 @@ export default function DashboardClient({ username, actualCount, historyCount, t
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <QuickLink href="/dashboard/cards?tab=actual" icon="🃏" label="My Collection" sub={`${actualCount} cards currently owned`} neon />
-        <QuickLink href="/dashboard/cards?tab=history" icon="📚" label="Sale History" sub={`${historyCount} cards sold`} />
+        <QuickLink href="/dashboard/sales" icon="📚" label="Sale History" sub={`${historyCount} cards sold`} />
       </div>
     </div>
   );
