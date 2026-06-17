@@ -37,19 +37,22 @@ const ALL_COLUMNS: { key: ColKey; label: string }[] = [
 const DEFAULT_VISIBLE: ColKey[] = ["set", "quality", "bought", "current_value", "pl"];
 const STORAGE_KEY = "poketracker_columns";
 
-export default function CardsClientPage({ cards: initialCards, currentUserId, targetUserId, isOwn, currentUserProfile, targetProfile, initialTab, collectionType = 'collection', pageTitle }: Props) {
-  const [cards, setCards]               = useState<Card[]>(initialCards);
-  const [tab, setTab]                   = useState<"actual" | "history">(initialTab);
-  const [editCard, setEditCard]         = useState<Card | null>(null);
-  const [showAdd, setShowAdd]           = useState(false);
-  const [soldCard, setSoldCard]         = useState<Card | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<Card | null>(null);
-  const [moveCard, setMoveCard]             = useState<Card | null>(null);
-  const [search, setSearch]             = useState("");
-  const [sortKey, setSortKey]           = useState<SortKey>("card_name");
-  const [sortDir, setSortDir]           = useState<SortDir>("asc");
-  const [visibleCols, setVisibleCols]   = useState<ColKey[]>(DEFAULT_VISIBLE);
-  const [colMenuOpen, setColMenuOpen]   = useState(false);
+export default function CardsClientPage({ cards: initialCards, currentUserId, targetUserId, isOwn, currentUserProfile, targetProfile, initialTab, collectionType = "collection", pageTitle }: Props) {
+  const [cards, setCards]                     = useState<Card[]>(initialCards);
+  const [tab, setTab]                         = useState<"actual" | "history">(initialTab);
+  const [editCard, setEditCard]               = useState<Card | null>(null);
+  const [showAdd, setShowAdd]                 = useState(false);
+  const [soldCard, setSoldCard]               = useState<Card | null>(null);
+  const [deleteConfirm, setDeleteConfirm]     = useState<Card | null>(null);
+  const [moveCard, setMoveCard]               = useState<Card | null>(null);
+  const [search, setSearch]                   = useState("");
+  const [sortKey, setSortKey]                 = useState<SortKey>("card_name");
+  const [sortDir, setSortDir]                 = useState<SortDir>("asc");
+  const [visibleCols, setVisibleCols]         = useState<ColKey[]>(DEFAULT_VISIBLE);
+  const [colMenuOpen, setColMenuOpen]         = useState(false);
+  const [selected, setSelected]               = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction]           = useState<"delete" | "move" | null>(null);
+  const [bulkLoading, setBulkLoading]         = useState(false);
   const colMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -67,6 +70,9 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Clear selection when tab changes
+  useEffect(() => { setSelected(new Set()); }, [tab]);
+
   function toggleCol(key: ColKey) {
     setVisibleCols((prev) => {
       const next = prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key];
@@ -80,21 +86,21 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
   const actualCards  = cards.filter((c) => c.status === "actual");
   const historyCards = cards.filter((c) => c.status === "history");
 
-  const realisedProfit  = (c: Card) => c.price_sold  != null && c.price_bought != null ? c.price_sold  - c.price_bought : null;
+  const realisedProfit   = (c: Card) => c.price_sold   != null && c.price_bought != null ? c.price_sold   - c.price_bought : null;
   const unrealisedProfit = (c: Card) => c.actual_price != null && c.price_bought != null ? c.actual_price - c.price_bought : null;
 
   function getSortValue(card: Card, key: SortKey): number | string {
     switch (key) {
       case "card_name":    return card.card_name?.toLowerCase()  ?? "";
-      case "card_id": { const n = card.card_id ?? ""; const num = parseFloat(n.replace(/[^0-9.]/g, "")); return isNaN(num) ? n.toLowerCase() : num; }
-      case "card_number": { const n = card.card_number ?? ""; const num = parseFloat(n.replace(/[^0-9.]/g, "")); return isNaN(num) ? n.toLowerCase() : num; }
+      case "card_id":      { const n = card.card_id ?? "";     const num = parseFloat(n.replace(/[^0-9.]/g, "")); return isNaN(num) ? n.toLowerCase() : num; }
+      case "card_number":  { const n = card.card_number ?? ""; const num = parseFloat(n.replace(/[^0-9.]/g, "")); return isNaN(num) ? n.toLowerCase() : num; }
       case "set_name":     return card.set_name?.toLowerCase()   ?? "";
       case "quality":      return card.quality ?? "";
       case "extra_info":   return card.extra_info?.toLowerCase() ?? "";
       case "price_bought": return card.price_bought  ?? -Infinity;
       case "actual_price": return card.actual_price  ?? -Infinity;
       case "price_sold":   return card.price_sold    ?? -Infinity;
-      case "pl": return (tab === "actual" ? unrealisedProfit(card) : realisedProfit(card)) ?? -Infinity;
+      case "pl":           return (tab === "actual" ? unrealisedProfit(card) : realisedProfit(card)) ?? -Infinity;
     }
   }
 
@@ -120,6 +126,32 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
     return 0;
   });
 
+  // ── Selection helpers ──────────────────────────────────────────
+  const allDisplayedIds = displayed.map((c) => c.id);
+  const allSelected = allDisplayedIds.length > 0 && allDisplayedIds.every((id) => selected.has(id));
+  const someSelected = allDisplayedIds.some((id) => selected.has(id));
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        allDisplayedIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelected((prev) => new Set([...prev, ...allDisplayedIds]));
+    }
+  }
+
+  // ── Single card actions ─────────────────────────────────────────
   async function handleDelete(card: Card) {
     const res = await fetch(`/api/cards/${card.id}`, { method: "DELETE" });
     if (res.ok) { setCards((prev) => prev.filter((c) => c.id !== card.id)); setDeleteConfirm(null); }
@@ -128,14 +160,10 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
   async function handleMove(card: Card) {
     const targetType = collectionType === "collection" ? "inventory" : "collection";
     const res = await fetch(`/api/cards/${card.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      method: "PATCH", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ collection_type: targetType }),
     });
-    if (res.ok) {
-      setCards((prev) => prev.filter((c) => c.id !== card.id));
-      setMoveCard(null);
-    }
+    if (res.ok) { setCards((prev) => prev.filter((c) => c.id !== card.id)); setMoveCard(null); }
   }
 
   async function handleSold(card: Card, priceSold: number, dateSold: string) {
@@ -163,11 +191,38 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
       const exists = prev.find((c) => c.id === card.id);
       return exists ? prev.map((c) => (c.id === card.id ? card : c)) : [card, ...prev];
     });
-    // Close and immediately reopen to show fresh modal
     setShowAdd(false);
     setTimeout(() => setShowAdd(true), 50);
   }
 
+  // ── Bulk actions ────────────────────────────────────────────────
+  async function handleBulkDelete() {
+    setBulkLoading(true);
+    const ids = [...selected];
+    await Promise.all(ids.map((id) => fetch(`/api/cards/${id}`, { method: "DELETE" })));
+    setCards((prev) => prev.filter((c) => !ids.includes(c.id)));
+    setSelected(new Set());
+    setBulkAction(null);
+    setBulkLoading(false);
+  }
+
+  async function handleBulkMove() {
+    setBulkLoading(true);
+    const targetType = collectionType === "collection" ? "inventory" : "collection";
+    const ids = [...selected];
+    await Promise.all(ids.map((id) =>
+      fetch(`/api/cards/${id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ collection_type: targetType }),
+      })
+    ));
+    setCards((prev) => prev.filter((c) => !ids.includes(c.id)));
+    setSelected(new Set());
+    setBulkAction(null);
+    setBulkLoading(false);
+  }
+
+  // ── Render helpers ──────────────────────────────────────────────
   function SortIcon({ k }: { k: SortKey }) {
     if (sortKey !== k) return <span style={{ color: "var(--text-muted)", marginLeft: 4 }}>↕</span>;
     return <span style={{ color: "var(--neon)", marginLeft: 4 }}>{sortDir === "asc" ? "↑" : "↓"}</span>;
@@ -182,6 +237,8 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
       </th>
     );
   }
+
+  const selectedCount = [...selected].filter((id) => allDisplayedIds.includes(id)).length;
 
   return (
     <div>
@@ -201,7 +258,7 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
       </div>
 
       {/* Tabs + Search + Columns */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: "var(--bg-card)" }}>
           {(["actual", "history"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)} className="px-4 py-1.5 rounded-lg text-sm font-medium transition-all"
@@ -227,9 +284,8 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
           <button onClick={() => setColMenuOpen((o) => !o)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium"
             style={{ backgroundColor: colMenuOpen ? "var(--neon-dim)" : "var(--bg-card)", border: `1px solid ${colMenuOpen ? "var(--neon)44" : "var(--border)"}`, color: colMenuOpen ? "var(--neon)" : "var(--text-secondary)" }}>
-            ⚙ Columns {visibleCols.length !== DEFAULT_VISIBLE.length && <span className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: "var(--neon)", color: "#000" }}>{visibleCols.length}</span>}
+            ⚙ Columns
           </button>
-
           {colMenuOpen && (
             <div className="absolute right-0 top-10 z-50 rounded-xl shadow-xl w-52 overflow-hidden"
               style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)" }}>
@@ -262,6 +318,33 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
         </div>
       </div>
 
+      {/* Bulk action bar — only shown when items are selected and tab is actual */}
+      {isOwn && tab === "actual" && selectedCount > 0 && (
+        <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl mb-4"
+          style={{ backgroundColor: "var(--neon-dim)", border: "1px solid var(--neon)44" }}>
+          <span className="text-sm font-medium" style={{ color: "var(--neon)" }}>
+            {selectedCount} selected
+          </span>
+          <div className="flex gap-2 ml-2">
+            <button
+              onClick={() => setBulkAction("move")}
+              className="text-xs px-3 py-1.5 rounded-lg font-medium"
+              style={{ backgroundColor: "#88448833", color: "#CC88FF", border: "1px solid #88448866" }}>
+              → {collectionType === "collection" ? "Move to Inventory" : "Move to Collection"}
+            </button>
+            <button
+              onClick={() => setBulkAction("delete")}
+              className="text-xs px-3 py-1.5 rounded-lg font-medium"
+              style={{ backgroundColor: "#FF003322", color: "#FF6B6B", border: "1px solid #FF003344" }}>
+              Delete selected
+            </button>
+          </div>
+          <button onClick={() => setSelected(new Set())} className="ml-auto text-xs" style={{ color: "var(--text-muted)" }}>
+            Clear
+          </button>
+        </div>
+      )}
+
       {displayed.length === 0 ? (
         <div className="text-center py-16">
           <div className="text-5xl mb-3">🃏</div>
@@ -276,17 +359,23 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ backgroundColor: "var(--bg-elevated)", borderBottom: "1px solid var(--border)" }}>
-                  {/* Card name always visible */}
+                  {/* Checkbox column — only in actual tab and own collection */}
+                  {isOwn && tab === "actual" && (
+                    <th className="px-4 py-3 w-10">
+                      <input type="checkbox" checked={allSelected} onChange={toggleSelectAll}
+                        className="cursor-pointer w-4 h-4 rounded"
+                        style={{ accentColor: "var(--neon)" }} />
+                    </th>
+                  )}
                   <ThHeader k="card_name" label="Card" />
-                  {/* Optional columns */}
-                  {show("card_id")       && <ThHeader k="card_id" label="Card ID" />}
-                  {show("card_number")   && <ThHeader k="card_number" label="Number" />}
-                  {show("set")           && <ThHeader k="set_name" label="Set" />}
-                  {show("quality")       && <ThHeader k="quality" label="Quality" />}
-                  {show("extra_info")    && <ThHeader k="extra_info" label="Extra Info" />}
+                  {show("card_id")       && <ThHeader k="card_id"      label="Card ID" />}
+                  {show("card_number")   && <ThHeader k="card_number"  label="Number" />}
+                  {show("set")           && <ThHeader k="set_name"     label="Set" />}
+                  {show("quality")       && <ThHeader k="quality"      label="Quality" />}
+                  {show("extra_info")    && <ThHeader k="extra_info"   label="Extra Info" />}
                   {show("bought")        && <ThHeader k="price_bought" label="Bought" right />}
                   {show("current_value") && <ThHeader k={tab === "actual" ? "actual_price" : "price_sold"} label={tab === "actual" ? "Current Value" : "Sold"} right />}
-                  {show("pl")            && <ThHeader k="pl" label="P&L" right />}
+                  {show("pl")            && <ThHeader k="pl"           label="P&L" right />}
                   {isOwn && <th className="px-4 py-3"></th>}
                 </tr>
               </thead>
@@ -294,43 +383,44 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                 {displayed.map((card, i) => {
                   const u = unrealisedProfit(card);
                   const r = realisedProfit(card);
+                  const isSelected = selected.has(card.id);
                   return (
-                    <tr key={card.id} style={{ borderTop: i > 0 ? "1px solid var(--border)" : "none" }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-card-hover)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}>
+                    <tr key={card.id}
+                      style={{
+                        borderTop: i > 0 ? "1px solid var(--border)" : "none",
+                        backgroundColor: isSelected ? "var(--neon-dim)" : "transparent",
+                      }}
+                      onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = "var(--bg-card-hover)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = isSelected ? "var(--neon-dim)" : "transparent"; }}>
 
-                      {/* Card name — always visible */}
+                      {/* Checkbox */}
+                      {isOwn && tab === "actual" && (
+                        <td className="px-4 py-3 w-10">
+                          <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(card.id)}
+                            className="cursor-pointer w-4 h-4 rounded"
+                            style={{ accentColor: "var(--neon)" }} />
+                        </td>
+                      )}
+
+                      {/* Card name */}
                       <td className="px-4 py-3">
                         <div className="font-medium" style={{ color: "var(--text-primary)" }}>{card.card_name}</div>
                       </td>
 
-                      {/* Card ID column */}
                       {show("card_id") && (
-                        <td className="px-4 py-3 font-mono text-xs" style={{ color: "var(--text-secondary)" }}>
-                          {card.card_id || "—"}
-                        </td>
+                        <td className="px-4 py-3 font-mono text-xs" style={{ color: "var(--text-secondary)" }}>{card.card_id || "—"}</td>
                       )}
-
-                      {/* Card Number column */}
                       {show("card_number") && (
-                        <td className="px-4 py-3 text-xs" style={{ color: "var(--text-secondary)" }}>
-                          {card.card_number ? `#${card.card_number}` : "—"}
-                        </td>
+                        <td className="px-4 py-3 text-xs" style={{ color: "var(--text-secondary)" }}>{card.card_number ? `#${card.card_number}` : "—"}</td>
                       )}
-
-                      {/* Set column */}
                       {show("set") && (
                         <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>
                           {card.set_name ? (() => {
                             const s = POKEMON_SETS.find((x) => x.code === card.set_name);
-                            return s
-                              ? <span title={s.series}>{s.name} <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>({s.code})</span></span>
-                              : card.set_name;
+                            return s ? <span title={s.series}>{s.name} <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>({s.code})</span></span> : card.set_name;
                           })() : "—"}
                         </td>
                       )}
-
-                      {/* Quality column */}
                       {show("quality") && (
                         <td className="px-4 py-3">
                           {card.quality
@@ -338,23 +428,15 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                             : <span style={{ color: "var(--text-muted)" }}>—</span>}
                         </td>
                       )}
-
-                      {/* Extra Info column */}
                       {show("extra_info") && (
-                        <td className="px-4 py-3 text-xs italic" style={{ color: "var(--text-secondary)" }}>
-                          {card.extra_info || "—"}
-                        </td>
+                        <td className="px-4 py-3 text-xs italic" style={{ color: "var(--text-secondary)" }}>{card.extra_info || "—"}</td>
                       )}
-
-                      {/* Bought column */}
                       {show("bought") && (
                         <td className="px-4 py-3 text-right">
                           <div style={{ color: "var(--text-primary)" }}>{card.price_bought != null ? `€${card.price_bought.toFixed(2)}` : "—"}</div>
                           {card.date_bought && <div className="text-xs" style={{ color: "var(--text-muted)" }}>{format(new Date(card.date_bought), "dd/MM/yy")}</div>}
                         </td>
                       )}
-
-                      {/* Current Value / Sold column */}
                       {show("current_value") && (
                         <td className="px-4 py-3 text-right">
                           {tab === "actual" ? (
@@ -367,18 +449,15 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                           )}
                         </td>
                       )}
-
-                      {/* P&L column */}
                       {show("pl") && (
                         <td className="px-4 py-3 text-right">
                           {tab === "actual"
                             ? u != null ? <span className="font-semibold" style={{ color: u >= 0 ? "#00FF88" : "#FF6B6B" }}>{u >= 0 ? "+" : ""}€{u.toFixed(2)}</span> : <span style={{ color: "var(--text-muted)" }}>—</span>
-                            : r != null ? <span className="font-semibold" style={{ color: r >= 0 ? "#00FF88" : "#FF6B6B" }}>{r >= 0 ? "+" : ""}€{r.toFixed(2)}</span> : <span style={{ color: "var(--text-muted)" }}>—</span>
-                          }
+                            : r != null ? <span className="font-semibold" style={{ color: r >= 0 ? "#00FF88" : "#FF6B6B" }}>{r >= 0 ? "+" : ""}€{r.toFixed(2)}</span> : <span style={{ color: "var(--text-muted)" }}>—</span>}
                         </td>
                       )}
 
-                      {/* Actions */}
+                      {/* Row actions */}
                       {isOwn && (
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
@@ -387,7 +466,7 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                             )}
                             {tab === "actual" && (
                               <button onClick={() => setMoveCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ backgroundColor: "#88448822", color: "#CC88FF", border: "1px solid #88448844" }}>
-                                {collectionType === "collection" ? "→ Inventory" : "→ Collection"}
+                                {collectionType === "collection" ? "→ Inv" : "→ Col"}
                               </button>
                             )}
                             <button onClick={() => setEditCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }}>Edit</button>
@@ -404,6 +483,49 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
         </div>
       )}
 
+      {/* Bulk delete confirm */}
+      {bulkAction === "delete" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.8)" }}>
+          <div className="rounded-2xl p-6 w-full max-w-sm" style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)" }}>
+            <h3 className="font-bold text-lg mb-2" style={{ color: "var(--text-primary)" }}>Delete {selectedCount} cards</h3>
+            <p className="text-sm mb-5" style={{ color: "var(--text-secondary)" }}>
+              Are you sure you want to delete <strong style={{ color: "var(--text-primary)" }}>{selectedCount} cards</strong>? This cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setBulkAction(null)} className="flex-1 px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>Cancel</button>
+              <button onClick={handleBulkDelete} disabled={bulkLoading} className="flex-1 px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: "#FF003344", border: "1px solid #FF003366", color: "#FF6B6B", opacity: bulkLoading ? 0.6 : 1 }}>
+                {bulkLoading ? "Deleting…" : "Delete all"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk move confirm */}
+      {bulkAction === "move" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.8)" }}>
+          <div className="rounded-2xl p-6 w-full max-w-sm" style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)" }}>
+            <h3 className="font-bold text-lg mb-2" style={{ color: "var(--text-primary)" }}>
+              Move {selectedCount} cards to {collectionType === "collection" ? "Inventory" : "My Collection"}
+            </h3>
+            <p className="text-sm mb-5" style={{ color: "var(--text-secondary)" }}>
+              All <strong style={{ color: "var(--text-primary)" }}>{selectedCount} selected cards</strong> will be moved to your {collectionType === "collection" ? "Inventory" : "Collection"}.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setBulkAction(null)} className="flex-1 px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>Cancel</button>
+              <button onClick={handleBulkMove} disabled={bulkLoading} className="flex-1 px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: "#88448844", border: "1px solid #88448866", color: "#CC88FF", opacity: bulkLoading ? 0.6 : 1 }}>
+                {bulkLoading ? "Moving…" : "Move all"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Single move confirm */}
       {moveCard && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.8)" }}>
           <div className="rounded-2xl p-6 w-full max-w-sm" style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)" }}>
