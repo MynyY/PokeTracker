@@ -4,9 +4,9 @@ import { useState } from "react";
 import { Card, CardQuality, QUALITY_OPTIONS } from "@/types";
 import SetSelector from "./SetSelector";
 
-interface Props { card?: Card; userId: string; onSave: (card: Card) => void; onClose: () => void; }
+interface Props { card?: Card; userId: string; onSave: (card: Card) => void; onSaveAndContinue?: (card: Card) => void; onClose: () => void; }
 
-export default function CardModal({ card, userId, onSave, onClose }: Props) {
+export default function CardModal({ card, userId, onSave, onSaveAndContinue, onClose }: Props) {
   const isEdit = !!card;
   const [form, setForm] = useState({
     card_name: card?.card_name ?? "", card_number: card?.card_number ?? "", card_id: card?.card_id ?? "",
@@ -40,19 +40,12 @@ export default function CardModal({ card, userId, onSave, onClose }: Props) {
     });
     const data = await res.json();
     if (!res.ok) { setError(data.error ?? "Something went wrong"); setLoading(false); return; }
-    onSave(data.card);
-    if (addAnother) {
-      // Reset form for next card
-      setForm({
-        card_name: "", card_number: "", card_id: "",
-        set_name: form.set_name, // keep set
-        quality: form.quality,   // keep quality
-        price_bought: "", date_bought: form.date_bought, // keep date
-        price_sold: "", date_sold: "", actual_price: "", extra_info: "",
-      });
-      setError(null);
-      setAddAnother(false);
+    if (addAnother && onSaveAndContinue) {
+      onSaveAndContinue(data.card);
+    } else {
+      onSave(data.card);
     }
+    setAddAnother(false);
     setLoading(false);
   }
 

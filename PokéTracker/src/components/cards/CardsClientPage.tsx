@@ -142,6 +142,16 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
     setEditCard(null); setShowAdd(false);
   }
 
+  function handleCardSavedAndContinue(card: Card) {
+    setCards((prev) => {
+      const exists = prev.find((c) => c.id === card.id);
+      return exists ? prev.map((c) => (c.id === card.id ? card : c)) : [card, ...prev];
+    });
+    // Close and immediately reopen to show fresh modal
+    setShowAdd(false);
+    setTimeout(() => setShowAdd(true), 50);
+  }
+
   function SortIcon({ k }: { k: SortKey }) {
     if (sortKey !== k) return <span style={{ color: "var(--text-muted)", marginLeft: 4 }}>↕</span>;
     return <span style={{ color: "var(--neon)", marginLeft: 4 }}>{sortDir === "asc" ? "↑" : "↓"}</span>;
@@ -373,7 +383,7 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
         </div>
       )}
 
-      {(showAdd || editCard) && <CardModal card={editCard ?? undefined} userId={targetUserId} onSave={handleCardSaved} onClose={() => { setShowAdd(false); setEditCard(null); }} />}
+      {(showAdd || editCard) && <CardModal card={editCard ?? undefined} userId={targetUserId} onSave={handleCardSaved} onSaveAndContinue={showAdd ? handleCardSavedAndContinue : undefined} onClose={() => { setShowAdd(false); setEditCard(null); }} />}
       {soldCard && <SoldModal card={soldCard} onConfirm={handleSold} onClose={() => setSoldCard(null)} />}
 
       {deleteConfirm && (
