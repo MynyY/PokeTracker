@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import CardsClientPage from "@/components/cards/CardsClientPage";
-import { CardLot } from "@/types";
 
 export default async function CardsPage({
   searchParams,
@@ -37,22 +36,9 @@ export default async function CardsPage({
     .eq("collection_type", "collection")
     .order("created_at", { ascending: false });
 
-  // Fetch lots for all cards
-  const cardIds = (cards ?? []).map((c) => c.id);
-  const { data: lots } = cardIds.length > 0
-    ? await supabase.from("card_lots").select("*").in("card_id", cardIds)
-    : { data: [] };
-
-  const lotsMap: Record<string, CardLot[]> = {};
-  for (const lot of lots ?? []) {
-    if (!lotsMap[lot.card_id]) lotsMap[lot.card_id] = [];
-    lotsMap[lot.card_id].push(lot);
-  }
-
   return (
     <CardsClientPage
       cards={cards ?? []}
-      initialLotsMap={lotsMap}
       currentUserId={user.id}
       targetUserId={targetUserId}
       isOwn={isOwn}

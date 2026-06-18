@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Card, Profile, CardLot } from "@/types";
-import LotsModal from "./LotsModal";
+import { Card, Profile } from "@/types";
 import { POKEMON_SETS } from "@/lib/sets";
 import CardModal from "./CardModal";
 import SoldModal from "./SoldModal";
@@ -10,7 +9,6 @@ import { format } from "date-fns";
 
 interface Props {
   cards: Card[];
-  initialLotsMap?: Record<string, CardLot[]>;
   currentUserId: string;
   targetUserId: string;
   isOwn: boolean;
@@ -23,24 +21,23 @@ interface Props {
 
 type SortKey = "card_name" | "card_id" | "card_number" | "set_name" | "quality" | "extra_info" | "price_bought" | "actual_price" | "price_sold" | "pl";
 type SortDir = "asc" | "desc";
-type ColKey = "card_id" | "card_number" | "set" | "quality" | "amount" | "bought" | "current_value" | "pl" | "extra_info";
+type ColKey = "card_id" | "card_number" | "set" | "quality" | "bought" | "current_value" | "pl" | "extra_info";
 
 const ALL_COLUMNS: { key: ColKey; label: string }[] = [
   { key: "card_id",       label: "Card ID" },
   { key: "card_number",   label: "Card Number" },
   { key: "set",           label: "Set" },
   { key: "quality",       label: "Quality" },
-  { key: "amount",        label: "Amount" },
   { key: "bought",        label: "Bought" },
   { key: "current_value", label: "Current Value / Sold" },
   { key: "pl",            label: "P&L" },
   { key: "extra_info",    label: "Extra Info" },
 ];
 
-const DEFAULT_VISIBLE: ColKey[] = ["set", "quality", "amount", "bought", "current_value", "pl"];
+const DEFAULT_VISIBLE: ColKey[] = ["set", "quality", "bought", "current_value", "pl"];
 const STORAGE_KEY = "poketracker_columns";
 
-export default function CardsClientPage({ cards: initialCards, initialLotsMap = {}, currentUserId, targetUserId, isOwn, currentUserProfile, targetProfile, initialTab, collectionType = "collection", pageTitle }: Props) {
+export default function CardsClientPage({ cards: initialCards, currentUserId, targetUserId, isOwn, currentUserProfile, targetProfile, initialTab, collectionType = "collection", pageTitle }: Props) {
   const [cards, setCards]                     = useState<Card[]>(initialCards);
   const [tab, setTab]                         = useState<"actual" | "history">(initialTab);
   const [editCard, setEditCard]               = useState<Card | null>(null);
@@ -57,8 +54,6 @@ export default function CardsClientPage({ cards: initialCards, initialLotsMap = 
   const [bulkAction, setBulkAction]           = useState<"delete" | "move" | null>(null);
   const [bulkLoading, setBulkLoading]         = useState(false);
   const colMenuRef = useRef<HTMLDivElement>(null);
-  const [lotsMap, setLotsMap] = useState<Record<string, CardLot[]>>(initialLotsMap);
-  const [lotsCard, setLotsCard] = useState<Card | null>(null);
 
   useEffect(() => {
     try {
@@ -87,29 +82,6 @@ export default function CardsClientPage({ cards: initialCards, initialLotsMap = 
   }
 
   const show = (key: ColKey) => visibleCols.includes(key);
-
-  function getActualLots(cardId: string): CardLot[] {
-    return (lotsMap[cardId] ?? []).filter((l) => l.status === "actual");
-  }
-
-  function getQuantity(cardId: string): number {
-    return getActualLots(cardId).length;
-  }
-
-  function getAvgBought(cardId: string): number | null {
-    const lots = getActualLots(cardId).filter((l) => l.price_bought != null);
-    if (lots.length === 0) return null;
-    return lots.reduce((s, l) => s + (l.price_bought ?? 0), 0) / lots.length;
-  }
-
-  function handleLotsChanged(cardId: string, updatedLots: CardLot[]) {
-    setLotsMap((prev) => ({ ...prev, [cardId]: updatedLots }));
-    // If card has no lots left in actual, update card status
-    const actualCount = updatedLots.filter((l) => l.status === "actual").length;
-    if (actualCount === 0 && updatedLots.some((l) => l.status === "history")) {
-      // Keep card visible but quantity shows 0
-    }
-  }
 
   const actualCards  = cards.filter((c) => c.status === "actual");
   const historyCards = cards.filter((c) => c.status === "history");
@@ -400,7 +372,6 @@ export default function CardsClientPage({ cards: initialCards, initialLotsMap = 
                   {show("card_number")   && <ThHeader k="card_number"  label="Number" />}
                   {show("set")           && <ThHeader k="set_name"     label="Set" />}
                   {show("quality")       && <ThHeader k="quality"      label="Quality" />}
-                  {show("amount") && tab === "actual" && <th className="px-4 py-3 font-semibold text-right cursor-pointer select-none" style={{ color: "var(--text-secondary)" }}>Amount</th>}
                   {show("extra_info")    && <ThHeader k="extra_info"   label="Extra Info" />}
                   {show("bought")        && <ThHeader k="price_bought" label="Bought" right />}
                   {show("current_value") && <ThHeader k={tab === "actual" ? "actual_price" : "price_sold"} label={tab === "actual" ? "Current Value" : "Sold"} right />}
@@ -431,14 +402,9 @@ export default function CardsClientPage({ cards: initialCards, initialLotsMap = 
                         </td>
                       )}
 
-                      {/* Card name — clicking opens lots modal */}
-                      <td className="px-4 py-3 cursor-pointer" onClick={() => setLotsCard(card)}>
-                        <div className="font-medium hover:underline" style={{ color: "var(--neon)" }}>{card.card_name}</div>
-                        {tab === "actual" && getAvgBought(card.id) != null && getQuantity(card.id) > 1 && (
-                          <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                            avg. €{getAvgBought(card.id)!.toFixed(2)}
-                          </div>
-                        )}
+                      {/* Card name */}
+                      <td className="px-4 py-3">
+                        <div className="font-medium" style={{ color: "var(--text-primary)" }}>{card.card_name}</div>
                       </td>
 
                       {show("card_id") && (
@@ -462,33 +428,13 @@ export default function CardsClientPage({ cards: initialCards, initialLotsMap = 
                             : <span style={{ color: "var(--text-muted)" }}>—</span>}
                         </td>
                       )}
-                      {show("amount") && tab === "actual" && (
-                        <td className="px-4 py-3 text-right cursor-pointer" onClick={() => setLotsCard(card)}>
-                          <span className="font-semibold" style={{ color: getQuantity(card.id) > 1 ? "var(--neon)" : "var(--text-primary)" }}>
-                            {getQuantity(card.id) || "—"}
-                          </span>
-                        </td>
-                      )}
                       {show("extra_info") && (
                         <td className="px-4 py-3 text-xs italic" style={{ color: "var(--text-secondary)" }}>{card.extra_info || "—"}</td>
                       )}
                       {show("bought") && (
                         <td className="px-4 py-3 text-right">
-                          {tab === "actual" && getQuantity(card.id) > 0 ? (() => {
-                            const avg = getAvgBought(card.id);
-                            const qty = getQuantity(card.id);
-                            return (
-                              <>
-                                <div style={{ color: "var(--text-primary)" }}>{avg != null ? `€${avg.toFixed(2)}` : "—"}</div>
-                                {qty > 1 && <div className="text-xs" style={{ color: "var(--text-muted)" }}>avg × {qty}</div>}
-                              </>
-                            );
-                          })() : (
-                            <>
-                              <div style={{ color: "var(--text-primary)" }}>{card.price_bought != null ? `€${card.price_bought.toFixed(2)}` : "—"}</div>
-                              {card.date_bought && <div className="text-xs" style={{ color: "var(--text-muted)" }}>{format(new Date(card.date_bought), "dd/MM/yy")}</div>}
-                            </>
-                          )}
+                          <div style={{ color: "var(--text-primary)" }}>{card.price_bought != null ? `€${card.price_bought.toFixed(2)}` : "—"}</div>
+                          {card.date_bought && <div className="text-xs" style={{ color: "var(--text-muted)" }}>{format(new Date(card.date_bought), "dd/MM/yy")}</div>}
                         </td>
                       )}
                       {show("current_value") && (
@@ -617,15 +563,6 @@ export default function CardsClientPage({ cards: initialCards, initialLotsMap = 
             </div>
           </div>
         </div>
-      )}
-
-      {lotsCard && (
-        <LotsModal
-          card={lotsCard}
-          lots={lotsMap[lotsCard.id] ?? []}
-          onClose={() => setLotsCard(null)}
-          onLotsChanged={handleLotsChanged}
-        />
       )}
 
       {(showAdd || editCard) && <CardModal card={editCard ?? undefined} userId={targetUserId} collectionType={collectionType} onSave={handleCardSaved} onSaveAndContinue={showAdd ? handleCardSavedAndContinue : undefined} onClose={() => { setShowAdd(false); setEditCard(null); }} />}
