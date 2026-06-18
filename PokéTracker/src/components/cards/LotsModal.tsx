@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardLot } from "@/types";
 import { format } from "date-fns";
 
@@ -14,6 +14,33 @@ interface Props {
 export default function LotsModal({ card, lots: initialLots, onClose, onLotsChanged }: Props) {
   const [lots, setLots] = useState<CardLot[]>(initialLots);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [initializing, setInitializing] = useState(false);
+
+  // Auto-create initial lot from card data if no lots exist yet
+  async function initLot() {
+    if (initialLots.length > 0 || initializing) return;
+    setInitializing(true);
+    const res = await fetch("/api/lots", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        card_id: card.id,
+        price_bought: card.price_bought ?? null,
+        date_bought: card.date_bought ?? null,
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const updated = [data.lot];
+      setLots(updated);
+      onLotsChanged(card.id, updated);
+    }
+    setInitializing(false);
+  }
+
+  // Run on mount if no lots
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (initialLots.length === 0) initLot(); }, []);
   const [addForm, setAddForm] = useState({ price_bought: "", date_bought: new Date().toISOString().split("T")[0] });
   const [soldLot, setSoldLot] = useState<CardLot | null>(null);
   const [soldForm, setSoldForm] = useState({ price_sold: "", date_sold: new Date().toISOString().split("T")[0] });
