@@ -474,8 +474,21 @@ export default function CardsClientPage({ cards: initialCards, initialLotsMap = 
                       )}
                       {show("bought") && (
                         <td className="px-4 py-3 text-right">
-                          <div style={{ color: "var(--text-primary)" }}>{card.price_bought != null ? `€${card.price_bought.toFixed(2)}` : "—"}</div>
-                          {card.date_bought && <div className="text-xs" style={{ color: "var(--text-muted)" }}>{format(new Date(card.date_bought), "dd/MM/yy")}</div>}
+                          {tab === "actual" && getQuantity(card.id) > 0 ? (() => {
+                            const avg = getAvgBought(card.id);
+                            const qty = getQuantity(card.id);
+                            return (
+                              <>
+                                <div style={{ color: "var(--text-primary)" }}>{avg != null ? `€${avg.toFixed(2)}` : "—"}</div>
+                                {qty > 1 && <div className="text-xs" style={{ color: "var(--text-muted)" }}>avg × {qty}</div>}
+                              </>
+                            );
+                          })() : (
+                            <>
+                              <div style={{ color: "var(--text-primary)" }}>{card.price_bought != null ? `€${card.price_bought.toFixed(2)}` : "—"}</div>
+                              {card.date_bought && <div className="text-xs" style={{ color: "var(--text-muted)" }}>{format(new Date(card.date_bought), "dd/MM/yy")}</div>}
+                            </>
+                          )}
                         </td>
                       )}
                       {show("current_value") && (
