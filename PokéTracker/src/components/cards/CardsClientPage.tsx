@@ -23,20 +23,21 @@ interface Props {
 
 type SortKey = "card_name" | "card_id" | "card_number" | "set_name" | "quality" | "extra_info" | "price_bought" | "actual_price" | "price_sold" | "pl";
 type SortDir = "asc" | "desc";
-type ColKey = "card_id" | "card_number" | "set" | "quality" | "bought" | "current_value" | "pl" | "extra_info";
+type ColKey = "card_id" | "card_number" | "set" | "quality" | "amount" | "bought" | "current_value" | "pl" | "extra_info";
 
 const ALL_COLUMNS: { key: ColKey; label: string }[] = [
   { key: "card_id",       label: "Card ID" },
   { key: "card_number",   label: "Card Number" },
   { key: "set",           label: "Set" },
   { key: "quality",       label: "Quality" },
+  { key: "amount",        label: "Amount" },
   { key: "bought",        label: "Bought" },
   { key: "current_value", label: "Current Value / Sold" },
   { key: "pl",            label: "P&L" },
   { key: "extra_info",    label: "Extra Info" },
 ];
 
-const DEFAULT_VISIBLE: ColKey[] = ["set", "quality", "bought", "current_value", "pl"];
+const DEFAULT_VISIBLE: ColKey[] = ["set", "quality", "amount", "bought", "current_value", "pl"];
 const STORAGE_KEY = "poketracker_columns";
 
 export default function CardsClientPage({ cards: initialCards, initialLotsMap = {}, currentUserId, targetUserId, isOwn, currentUserProfile, targetProfile, initialTab, collectionType = "collection", pageTitle }: Props) {
@@ -399,6 +400,7 @@ export default function CardsClientPage({ cards: initialCards, initialLotsMap = 
                   {show("card_number")   && <ThHeader k="card_number"  label="Number" />}
                   {show("set")           && <ThHeader k="set_name"     label="Set" />}
                   {show("quality")       && <ThHeader k="quality"      label="Quality" />}
+                  {show("amount") && tab === "actual" && <th className="px-4 py-3 font-semibold text-right cursor-pointer select-none" style={{ color: "var(--text-secondary)" }}>Amount</th>}
                   {show("extra_info")    && <ThHeader k="extra_info"   label="Extra Info" />}
                   {show("bought")        && <ThHeader k="price_bought" label="Bought" right />}
                   {show("current_value") && <ThHeader k={tab === "actual" ? "actual_price" : "price_sold"} label={tab === "actual" ? "Current Value" : "Sold"} right />}
@@ -429,16 +431,9 @@ export default function CardsClientPage({ cards: initialCards, initialLotsMap = 
                         </td>
                       )}
 
-                      {/* Card name */}
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium" style={{ color: "var(--text-primary)" }}>{card.card_name}</span>
-                          {tab === "actual" && getQuantity(card.id) > 0 && (
-                            <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }}>
-                              ×{getQuantity(card.id)}
-                            </span>
-                          )}
-                        </div>
+                      {/* Card name — clicking opens lots modal */}
+                      <td className="px-4 py-3 cursor-pointer" onClick={() => setLotsCard(card)}>
+                        <div className="font-medium hover:underline" style={{ color: "var(--neon)" }}>{card.card_name}</div>
                         {tab === "actual" && getAvgBought(card.id) != null && getQuantity(card.id) > 1 && (
                           <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
                             avg. €{getAvgBought(card.id)!.toFixed(2)}
@@ -465,6 +460,13 @@ export default function CardsClientPage({ cards: initialCards, initialLotsMap = 
                           {card.quality
                             ? <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold" style={{ backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }}>{card.quality}</span>
                             : <span style={{ color: "var(--text-muted)" }}>—</span>}
+                        </td>
+                      )}
+                      {show("amount") && tab === "actual" && (
+                        <td className="px-4 py-3 text-right cursor-pointer" onClick={() => setLotsCard(card)}>
+                          <span className="font-semibold" style={{ color: getQuantity(card.id) > 1 ? "var(--neon)" : "var(--text-primary)" }}>
+                            {getQuantity(card.id) || "—"}
+                          </span>
                         </td>
                       )}
                       {show("extra_info") && (
@@ -500,10 +502,6 @@ export default function CardsClientPage({ cards: initialCards, initialLotsMap = 
                       {isOwn && (
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
-                            <button onClick={() => setLotsCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium"
-                              style={{ backgroundColor: "var(--bg-elevated)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
-                              Lots {getQuantity(card.id) > 0 ? `(${getQuantity(card.id)})` : ""}
-                            </button>
                             {tab === "actual" && (
                               <button onClick={() => setSoldCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ backgroundColor: "#00FF8822", color: "#00FF88", border: "1px solid #00FF8844" }}>Sold</button>
                             )}

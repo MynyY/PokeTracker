@@ -27,6 +27,7 @@ export interface Card {
   extra_info: string | null;
   status: CardStatus;
   is_wishlist: boolean;
+  amount: number;
   collection_type: 'collection' | 'inventory';
   created_at: string;
   updated_at: string;
