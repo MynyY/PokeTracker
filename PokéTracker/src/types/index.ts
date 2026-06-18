@@ -55,3 +55,20 @@ export const QUALITY_COLORS: Record<CardQuality, string> = {
   PL: "bg-red-100 text-red-800",
   PO: "bg-gray-100 text-gray-800",
 };
+
+export interface CardLot {
+  id: string;
+  card_id: string;
+  price_bought: number | null;
+  date_bought: string | null;
+  price_sold: number | null;
+  date_sold: string | null;
+  status: "actual" | "history";
+  created_at: string;
+}
+
+export interface CardWithLots extends Card {
+  lots: CardLot[];
+  quantity: number;
+  avg_price_bought: number | null;
+}

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Card, Profile } from "@/types";
+import { Card, Profile, CardLot } from "@/types";
+import LotsModal from "./LotsModal";
 import { POKEMON_SETS } from "@/lib/sets";
 import CardModal from "./CardModal";
 import SoldModal from "./SoldModal";
@@ -9,6 +10,7 @@ import { format } from "date-fns";
 
 interface Props {
   cards: Card[];
+  initialLotsMap?: Record<string, CardLot[]>;
   currentUserId: string;
   targetUserId: string;
   isOwn: boolean;
@@ -37,7 +39,7 @@ const ALL_COLUMNS: { key: ColKey; label: string }[] = [
 const DEFAULT_VISIBLE: ColKey[] = ["set", "quality", "bought", "current_value", "pl"];
 const STORAGE_KEY = "poketracker_columns";
 
-export default function CardsClientPage({ cards: initialCards, currentUserId, targetUserId, isOwn, currentUserProfile, targetProfile, initialTab, collectionType = "collection", pageTitle }: Props) {
+export default function CardsClientPage({ cards: initialCards, initialLotsMap = {}, currentUserId, targetUserId, isOwn, currentUserProfile, targetProfile, initialTab, collectionType = "collection", pageTitle }: Props) {
   const [cards, setCards]                     = useState<Card[]>(initialCards);
   const [tab, setTab]                         = useState<"actual" | "history">(initialTab);
   const [editCard, setEditCard]               = useState<Card | null>(null);
@@ -54,6 +56,8 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
   const [bulkAction, setBulkAction]           = useState<"delete" | "move" | null>(null);
   const [bulkLoading, setBulkLoading]         = useState(false);
   const colMenuRef = useRef<HTMLDivElement>(null);
+  const [lotsMap, setLotsMap] = useState<Record<string, CardLot[]>>(initialLotsMap);
+  const [lotsCard, setLotsCard] = useState<Card | null>(null);
 
   useEffect(() => {
     try {
@@ -82,6 +86,29 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
   }
 
   const show = (key: ColKey) => visibleCols.includes(key);
+
+  function getActualLots(cardId: string): CardLot[] {
+    return (lotsMap[cardId] ?? []).filter((l) => l.status === "actual");
+  }
+
+  function getQuantity(cardId: string): number {
+    return getActualLots(cardId).length;
+  }
+
+  function getAvgBought(cardId: string): number | null {
+    const lots = getActualLots(cardId).filter((l) => l.price_bought != null);
+    if (lots.length === 0) return null;
+    return lots.reduce((s, l) => s + (l.price_bought ?? 0), 0) / lots.length;
+  }
+
+  function handleLotsChanged(cardId: string, updatedLots: CardLot[]) {
+    setLotsMap((prev) => ({ ...prev, [cardId]: updatedLots }));
+    // If card has no lots left in actual, update card status
+    const actualCount = updatedLots.filter((l) => l.status === "actual").length;
+    if (actualCount === 0 && updatedLots.some((l) => l.status === "history")) {
+      // Keep card visible but quantity shows 0
+    }
+  }
 
   const actualCards  = cards.filter((c) => c.status === "actual");
   const historyCards = cards.filter((c) => c.status === "history");
@@ -404,7 +431,19 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
 
                       {/* Card name */}
                       <td className="px-4 py-3">
-                        <div className="font-medium" style={{ color: "var(--text-primary)" }}>{card.card_name}</div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium" style={{ color: "var(--text-primary)" }}>{card.card_name}</span>
+                          {tab === "actual" && getQuantity(card.id) > 0 && (
+                            <span className="text-xs px-1.5 py-0.5 rounded-full font-bold" style={{ backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }}>
+                              ×{getQuantity(card.id)}
+                            </span>
+                          )}
+                        </div>
+                        {tab === "actual" && getAvgBought(card.id) != null && getQuantity(card.id) > 1 && (
+                          <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+                            avg. €{getAvgBought(card.id)!.toFixed(2)}
+                          </div>
+                        )}
                       </td>
 
                       {show("card_id") && (
@@ -461,6 +500,10 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                       {isOwn && (
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => setLotsCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium"
+                              style={{ backgroundColor: "var(--bg-elevated)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+                              Lots {getQuantity(card.id) > 0 ? `(${getQuantity(card.id)})` : ""}
+                            </button>
                             {tab === "actual" && (
                               <button onClick={() => setSoldCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ backgroundColor: "#00FF8822", color: "#00FF88", border: "1px solid #00FF8844" }}>Sold</button>
                             )}
@@ -563,6 +606,15 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
             </div>
           </div>
         </div>
+      )}
+
+      {lotsCard && (
+        <LotsModal
+          card={lotsCard}
+          lots={lotsMap[lotsCard.id] ?? []}
+          onClose={() => setLotsCard(null)}
+          onLotsChanged={handleLotsChanged}
+        />
       )}
 
       {(showAdd || editCard) && <CardModal card={editCard ?? undefined} userId={targetUserId} collectionType={collectionType} onSave={handleCardSaved} onSaveAndContinue={showAdd ? handleCardSavedAndContinue : undefined} onClose={() => { setShowAdd(false); setEditCard(null); }} />}
