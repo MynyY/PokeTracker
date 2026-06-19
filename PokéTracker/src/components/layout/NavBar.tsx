@@ -32,8 +32,19 @@ export default function NavBar({ profile }: { profile: Profile }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
-          <Link href="/dashboard" className="flex items-center gap-2 font-bold" style={{ color: "var(--text-primary)" }}>
-            <img src="/pokeball.jpg" alt="" className="w-6 h-6 rounded-full" style={{ boxShadow: "0 0 8px #00E5CC66" }} />
+          <Link href="/dashboard" className="flex items-center gap-2.5 font-bold" style={{ color: "var(--text-primary)" }}>
+            <div className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0" style={{ boxShadow: "0 0 8px #00E5CC55" }}>
+              <img
+                src="/logo.jpg"
+                alt=""
+                style={{
+                  width: "100%",
+                  height: "133%",
+                  objectFit: "cover",
+                  objectPosition: "center top",
+                }}
+              />
+            </div>
             <span className="hidden sm:inline">PokéTracker</span>
           </Link>
 
@@ -42,12 +53,16 @@ export default function NavBar({ profile }: { profile: Profile }) {
             {links.map((link) => {
               const isActive = pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href));
               return (
-                <Link key={link.href} href={link.href} className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
                   style={{
                     backgroundColor: isActive ? "var(--neon-dim)" : "transparent",
                     color: isActive ? "var(--neon)" : "var(--text-secondary)",
                     border: isActive ? "1px solid var(--neon)44" : "1px solid transparent",
-                  }}>
+                  }}
+                >
                   {link.label}
                 </Link>
               );
@@ -58,10 +73,14 @@ export default function NavBar({ profile }: { profile: Profile }) {
           <div className="flex items-center gap-2">
             <div className="hidden sm:flex items-center gap-2">
               <span className="text-sm" style={{ color: "var(--text-secondary)" }}>{profile.username}</span>
-              <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                style={profile.role === "master"
-                  ? { backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }
-                  : { backgroundColor: "var(--bg-elevated)", color: "var(--text-secondary)" }}>
+              <span
+                className="text-xs px-2 py-0.5 rounded-full font-medium"
+                style={
+                  profile.role === "master"
+                    ? { backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }
+                    : { backgroundColor: "var(--bg-elevated)", color: "var(--text-secondary)" }
+                }
+              >
                 {profile.role}
               </span>
             </div>
@@ -76,10 +95,13 @@ export default function NavBar({ profile }: { profile: Profile }) {
               {theme === "dark" ? "☀️" : "🌙"}
             </button>
 
-            <button onClick={handleSignOut} className="text-sm px-3 py-1.5 rounded-lg transition-colors"
+            <button
+              onClick={handleSignOut}
+              className="text-sm px-3 py-1.5 rounded-lg transition-colors"
               style={{ color: "var(--text-muted)" }}
               onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}>
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-muted)")}
+            >
               Sign out
             </button>
           </div>
