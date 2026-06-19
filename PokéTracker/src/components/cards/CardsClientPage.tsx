@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Card, Profile } from "@/types";
 import { POKEMON_SETS } from "@/lib/sets";
 import CardModal from "./CardModal";
@@ -64,6 +64,7 @@ export default function CardsClientPage({
   const [bulkAction, setBulkAction]         = useState<"delete" | "move" | null>(null);
   const [bulkLoading, setBulkLoading]       = useState(false);
   const colMenuRef = useRef<HTMLDivElement>(null);
+  const displayedRef = useRef<Card[]>([]);
 
   useEffect(() => {
     try {
@@ -134,6 +135,7 @@ export default function CardsClientPage({
     if (av > bv) return sortDir === "asc" ? 1 : -1;
     return 0;
   });
+  displayedRef.current = displayed;
 
   const allDisplayedIds = displayed.map((c) => c.id);
   const allSelected = allDisplayedIds.length > 0 && allDisplayedIds.every((id) => selected.has(id));
@@ -198,9 +200,10 @@ export default function CardsClientPage({
       const exists = prev.find((c) => c.id === savedCard.id);
       return exists ? prev.map((c) => (c.id === savedCard.id ? savedCard : c)) : [savedCard, ...prev];
     });
-    // Find current index in displayed list and open next card
-    const currentIndex = displayed.findIndex((c) => c.id === savedCard.id);
-    const nextCard = displayed[currentIndex + 1] ?? null;
+    // Use ref to get current sorted list at call time
+    const list = displayedRef.current;
+    const currentIndex = list.findIndex((c) => c.id === savedCard.id);
+    const nextCard = list[currentIndex + 1] ?? null;
     setEditCard(nextCard);
   }
 
