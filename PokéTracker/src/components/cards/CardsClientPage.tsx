@@ -192,6 +192,18 @@ export default function CardsClientPage({
     setEditCard(null); setShowAdd(false);
   }
 
+  function handleSaveAndNext(savedCard: Card) {
+    // Update card in list
+    setCards((prev) => {
+      const exists = prev.find((c) => c.id === savedCard.id);
+      return exists ? prev.map((c) => (c.id === savedCard.id ? savedCard : c)) : [savedCard, ...prev];
+    });
+    // Find current index in displayed list and open next card
+    const currentIndex = displayed.findIndex((c) => c.id === savedCard.id);
+    const nextCard = displayed[currentIndex + 1] ?? null;
+    setEditCard(nextCard);
+  }
+
   function handleCardSavedAndContinue(card: Card) {
     setCards((prev) => {
       const exists = prev.find((c) => c.id === card.id);
@@ -606,6 +618,7 @@ export default function CardsClientPage({
           collectionType={collectionType}
           onSave={handleCardSaved}
           onSaveAndContinue={showAdd ? handleCardSavedAndContinue : undefined}
+          onSaveAndNext={editCard ? handleSaveAndNext : undefined}
           onClose={() => { setShowAdd(false); setEditCard(null); }}
         />
       )}

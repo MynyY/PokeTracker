@@ -4,9 +4,9 @@ import { useState } from "react";
 import { Card, CardQuality, QUALITY_OPTIONS } from "@/types";
 import SetSelector from "./SetSelector";
 
-interface Props { card?: Card; userId: string; collectionType?: 'collection' | 'inventory'; onSave: (card: Card) => void; onSaveAndContinue?: (card: Card) => void; onClose: () => void; }
+interface Props { card?: Card; userId: string; collectionType?: 'collection' | 'inventory'; onSave: (card: Card) => void; onSaveAndContinue?: (card: Card) => void; onSaveAndNext?: (card: Card) => void; onClose: () => void; }
 
-export default function CardModal({ card, userId, collectionType = 'collection', onSave, onSaveAndContinue, onClose }: Props) {
+export default function CardModal({ card, userId, collectionType = 'collection', onSave, onSaveAndContinue, onSaveAndNext, onClose }: Props) {
   const isEdit = !!card;
   const [form, setForm] = useState({
     card_name: card?.card_name ?? "", card_number: card?.card_number ?? "", card_id: card?.card_id ?? "",
@@ -19,6 +19,7 @@ export default function CardModal({ card, userId, collectionType = 'collection',
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addAnother, setAddAnother] = useState(false);
+  const [saveNext, setSaveNext] = useState(false);
 
   function set(key: string, value: string) { setForm((prev) => ({ ...prev, [key]: value })); }
 
@@ -43,10 +44,13 @@ export default function CardModal({ card, userId, collectionType = 'collection',
     if (!res.ok) { setError(data.error ?? "Something went wrong"); setLoading(false); return; }
     if (addAnother && onSaveAndContinue) {
       onSaveAndContinue(data.card);
+    } else if (saveNext && onSaveAndNext) {
+      onSaveAndNext(data.card);
     } else {
       onSave(data.card);
     }
     setAddAnother(false);
+    setSaveNext(false);
     setLoading(false);
   }
 
@@ -136,17 +140,28 @@ export default function CardModal({ card, userId, collectionType = 'collection',
               <button
                 type="submit"
                 disabled={loading}
-                onClick={() => setAddAnother(true)}
+                onClick={() => { setAddAnother(true); setSaveNext(false); }}
                 className="w-full px-4 py-2.5 rounded-lg text-sm font-semibold"
                 style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--neon)44", color: "var(--neon)", opacity: loading ? 0.6 : 1 }}
               >
                 {loading && addAnother ? "Saving…" : "+ Add Another One"}
               </button>
             )}
+            {isEdit && onSaveAndNext && (
+              <button
+                type="submit"
+                disabled={loading}
+                onClick={() => { setSaveNext(true); setAddAnother(false); }}
+                className="w-full px-4 py-2.5 rounded-lg text-sm font-semibold"
+                style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--neon)44", color: "var(--neon)", opacity: loading ? 0.6 : 1 }}
+              >
+                {loading && saveNext ? "Saving…" : "Save & Go To Next →"}
+              </button>
+            )}
             <div className="flex gap-3">
               <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium" style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>Cancel</button>
-              <button type="submit" disabled={loading} onClick={() => setAddAnother(false)} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: "var(--neon)", color: "#000", opacity: loading ? 0.6 : 1 }}>
-                {loading && !addAnother ? "Saving…" : isEdit ? "Save Changes" : "Add Card"}
+              <button type="submit" disabled={loading} onClick={() => { setAddAnother(false); setSaveNext(false); }} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: "var(--neon)", color: "#000", opacity: loading ? 0.6 : 1 }}>
+                {loading && !addAnother && !saveNext ? "Saving…" : isEdit ? "Save Changes" : "Add Card"}
               </button>
             </div>
           </div>
