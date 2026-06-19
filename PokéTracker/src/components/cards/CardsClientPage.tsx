@@ -37,22 +37,32 @@ const ALL_COLUMNS: { key: ColKey; label: string }[] = [
 const DEFAULT_VISIBLE: ColKey[] = ["set", "quality", "bought", "current_value", "pl"];
 const STORAGE_KEY = "poketracker_columns";
 
-export default function CardsClientPage({ cards: initialCards, currentUserId, targetUserId, isOwn, currentUserProfile, targetProfile, initialTab, collectionType = "collection", pageTitle }: Props) {
-  const [cards, setCards]                     = useState<Card[]>(initialCards);
-  const [tab, setTab]                         = useState<"actual" | "history">(initialTab);
-  const [editCard, setEditCard]               = useState<Card | null>(null);
-  const [showAdd, setShowAdd]                 = useState(false);
-  const [soldCard, setSoldCard]               = useState<Card | null>(null);
-  const [deleteConfirm, setDeleteConfirm]     = useState<Card | null>(null);
-  const [moveCard, setMoveCard]               = useState<Card | null>(null);
-  const [search, setSearch]                   = useState("");
-  const [sortKey, setSortKey]                 = useState<SortKey>("card_name");
-  const [sortDir, setSortDir]                 = useState<SortDir>("asc");
-  const [visibleCols, setVisibleCols]         = useState<ColKey[]>(DEFAULT_VISIBLE);
-  const [colMenuOpen, setColMenuOpen]         = useState(false);
-  const [selected, setSelected]               = useState<Set<string>>(new Set());
-  const [bulkAction, setBulkAction]           = useState<"delete" | "move" | null>(null);
-  const [bulkLoading, setBulkLoading]         = useState(false);
+export default function CardsClientPage({
+  cards: initialCards,
+  currentUserId,
+  targetUserId,
+  isOwn,
+  currentUserProfile,
+  targetProfile,
+  initialTab,
+  collectionType = "collection",
+  pageTitle,
+}: Props) {
+  const [cards, setCards]                   = useState<Card[]>(initialCards);
+  const [tab, setTab]                       = useState<"actual" | "history">(initialTab);
+  const [editCard, setEditCard]             = useState<Card | null>(null);
+  const [showAdd, setShowAdd]               = useState(false);
+  const [soldCard, setSoldCard]             = useState<Card | null>(null);
+  const [deleteConfirm, setDeleteConfirm]   = useState<Card | null>(null);
+  const [moveCard, setMoveCard]             = useState<Card | null>(null);
+  const [search, setSearch]                 = useState("");
+  const [sortKey, setSortKey]               = useState<SortKey>("card_name");
+  const [sortDir, setSortDir]               = useState<SortDir>("asc");
+  const [visibleCols, setVisibleCols]       = useState<ColKey[]>(DEFAULT_VISIBLE);
+  const [colMenuOpen, setColMenuOpen]       = useState(false);
+  const [selected, setSelected]             = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction]         = useState<"delete" | "move" | null>(null);
+  const [bulkLoading, setBulkLoading]       = useState(false);
   const colMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -70,7 +80,6 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  // Clear selection when tab changes
   useEffect(() => { setSelected(new Set()); }, [tab]);
 
   function toggleCol(key: ColKey) {
@@ -92,7 +101,7 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
   function getSortValue(card: Card, key: SortKey): number | string {
     switch (key) {
       case "card_name":    return card.card_name?.toLowerCase()  ?? "";
-      case "card_id":      { const n = card.card_id ?? "";     const num = parseFloat(n.replace(/[^0-9.]/g, "")); return isNaN(num) ? n.toLowerCase() : num; }
+      case "card_id":      { const n = card.card_id     ?? ""; const num = parseFloat(n.replace(/[^0-9.]/g, "")); return isNaN(num) ? n.toLowerCase() : num; }
       case "card_number":  { const n = card.card_number ?? ""; const num = parseFloat(n.replace(/[^0-9.]/g, "")); return isNaN(num) ? n.toLowerCase() : num; }
       case "set_name":     return card.set_name?.toLowerCase()   ?? "";
       case "quality":      return card.quality ?? "";
@@ -126,10 +135,8 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
     return 0;
   });
 
-  // ── Selection helpers ──────────────────────────────────────────
   const allDisplayedIds = displayed.map((c) => c.id);
   const allSelected = allDisplayedIds.length > 0 && allDisplayedIds.every((id) => selected.has(id));
-  const someSelected = allDisplayedIds.some((id) => selected.has(id));
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -151,7 +158,6 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
     }
   }
 
-  // ── Single card actions ─────────────────────────────────────────
   async function handleDelete(card: Card) {
     const res = await fetch(`/api/cards/${card.id}`, { method: "DELETE" });
     if (res.ok) { setCards((prev) => prev.filter((c) => c.id !== card.id)); setDeleteConfirm(null); }
@@ -195,15 +201,12 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
     setTimeout(() => setShowAdd(true), 50);
   }
 
-  // ── Bulk actions ────────────────────────────────────────────────
   async function handleBulkDelete() {
     setBulkLoading(true);
     const ids = [...selected];
     await Promise.all(ids.map((id) => fetch(`/api/cards/${id}`, { method: "DELETE" })));
     setCards((prev) => prev.filter((c) => !ids.includes(c.id)));
-    setSelected(new Set());
-    setBulkAction(null);
-    setBulkLoading(false);
+    setSelected(new Set()); setBulkAction(null); setBulkLoading(false);
   }
 
   async function handleBulkMove() {
@@ -217,12 +220,9 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
       })
     ));
     setCards((prev) => prev.filter((c) => !ids.includes(c.id)));
-    setSelected(new Set());
-    setBulkAction(null);
-    setBulkLoading(false);
+    setSelected(new Set()); setBulkAction(null); setBulkLoading(false);
   }
 
-  // ── Render helpers ──────────────────────────────────────────────
   function SortIcon({ k }: { k: SortKey }) {
     if (sortKey !== k) return <span style={{ color: "var(--text-muted)", marginLeft: 4 }}>↕</span>;
     return <span style={{ color: "var(--neon)", marginLeft: 4 }}>{sortDir === "asc" ? "↑" : "↓"}</span>;
@@ -248,10 +248,13 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
           <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
             {isOwn ? (pageTitle ?? "My Collection") : `${targetProfile?.username}'s Cards`}
           </h1>
-          <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>{actualCards.length} owned · {historyCards.length} sold</p>
+          <p className="text-sm mt-0.5" style={{ color: "var(--text-secondary)" }}>
+            {actualCards.length} owned · {historyCards.length} sold
+          </p>
         </div>
         {isOwn && (
-          <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg" style={{ backgroundColor: "var(--neon)", color: "#000" }}>
+          <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg"
+            style={{ backgroundColor: "var(--neon)", color: "#000" }}>
             <span>+</span> Add To Collection
           </button>
         )}
@@ -262,7 +265,11 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
         <div className="flex gap-1 p-1 rounded-xl" style={{ backgroundColor: "var(--bg-card)" }}>
           {(["actual", "history"] as const).map((t) => (
             <button key={t} onClick={() => setTab(t)} className="px-4 py-1.5 rounded-lg text-sm font-medium transition-all"
-              style={{ backgroundColor: tab === t ? "var(--bg-elevated)" : "transparent", color: tab === t ? "var(--neon)" : "var(--text-secondary)", border: tab === t ? "1px solid var(--neon)33" : "1px solid transparent" }}>
+              style={{
+                backgroundColor: tab === t ? "var(--bg-elevated)" : "transparent",
+                color: tab === t ? "var(--neon)" : "var(--text-secondary)",
+                border: tab === t ? "1px solid var(--neon)33" : "1px solid transparent",
+              }}>
               {t === "actual" ? `Actual (${actualCards.length})` : `History (${historyCards.length})`}
             </button>
           ))}
@@ -276,14 +283,20 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
             style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
             onFocus={(e) => (e.target.style.borderColor = "var(--neon)")}
             onBlur={(e) => (e.target.style.borderColor = "var(--border)")} />
-          {search && <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: "var(--text-muted)" }}>×</button>}
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: "var(--text-muted)" }}>×</button>
+          )}
         </div>
 
         {/* Columns dropdown */}
         <div className="relative" ref={colMenuRef}>
           <button onClick={() => setColMenuOpen((o) => !o)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium"
-            style={{ backgroundColor: colMenuOpen ? "var(--neon-dim)" : "var(--bg-card)", border: `1px solid ${colMenuOpen ? "var(--neon)44" : "var(--border)"}`, color: colMenuOpen ? "var(--neon)" : "var(--text-secondary)" }}>
+            style={{
+              backgroundColor: colMenuOpen ? "var(--neon-dim)" : "var(--bg-card)",
+              border: `1px solid ${colMenuOpen ? "var(--neon)44" : "var(--border)"}`,
+              color: colMenuOpen ? "var(--neon)" : "var(--text-secondary)",
+            }}>
             ⚙ Columns
           </button>
           {colMenuOpen && (
@@ -300,7 +313,11 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                     onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-elevated)")}
                     onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}>
                     <span className="w-4 h-4 rounded flex items-center justify-center text-xs flex-shrink-0"
-                      style={{ backgroundColor: show(col.key) ? "var(--neon)" : "var(--bg-elevated)", border: `1px solid ${show(col.key) ? "var(--neon)" : "var(--border)"}`, color: "#000" }}>
+                      style={{
+                        backgroundColor: show(col.key) ? "var(--neon)" : "var(--bg-elevated)",
+                        border: `1px solid ${show(col.key) ? "var(--neon)" : "var(--border)"}`,
+                        color: "#000",
+                      }}>
                       {show(col.key) ? "✓" : ""}
                     </span>
                     {col.label}
@@ -308,8 +325,10 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                 ))}
               </div>
               <div className="px-3 py-2" style={{ borderTop: "1px solid var(--border)" }}>
-                <button onClick={() => { setVisibleCols(DEFAULT_VISIBLE); try { localStorage.removeItem(STORAGE_KEY + "_" + currentUserId); } catch {} }}
-                  className="text-xs w-full text-center" style={{ color: "var(--text-muted)" }}>
+                <button onClick={() => {
+                  setVisibleCols(DEFAULT_VISIBLE);
+                  try { localStorage.removeItem(STORAGE_KEY + "_" + currentUserId); } catch {}
+                }} className="text-xs w-full text-center" style={{ color: "var(--text-muted)" }}>
                   Reset to default
                 </button>
               </div>
@@ -318,23 +337,17 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
         </div>
       </div>
 
-      {/* Bulk action bar — only shown when items are selected and tab is actual */}
+      {/* Bulk action bar */}
       {isOwn && tab === "actual" && selectedCount > 0 && (
         <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl mb-4"
           style={{ backgroundColor: "var(--neon-dim)", border: "1px solid var(--neon)44" }}>
-          <span className="text-sm font-medium" style={{ color: "var(--neon)" }}>
-            {selectedCount} selected
-          </span>
+          <span className="text-sm font-medium" style={{ color: "var(--neon)" }}>{selectedCount} selected</span>
           <div className="flex gap-2 ml-2">
-            <button
-              onClick={() => setBulkAction("move")}
-              className="text-xs px-3 py-1.5 rounded-lg font-medium"
+            <button onClick={() => setBulkAction("move")} className="text-xs px-3 py-1.5 rounded-lg font-medium"
               style={{ backgroundColor: "#88448833", color: "#CC88FF", border: "1px solid #88448866" }}>
               → {collectionType === "collection" ? "Move to Inventory" : "Move to Collection"}
             </button>
-            <button
-              onClick={() => setBulkAction("delete")}
-              className="text-xs px-3 py-1.5 rounded-lg font-medium"
+            <button onClick={() => setBulkAction("delete")} className="text-xs px-3 py-1.5 rounded-lg font-medium"
               style={{ backgroundColor: "#FF003322", color: "#FF6B6B", border: "1px solid #FF003344" }}>
               Delete selected
             </button>
@@ -350,7 +363,9 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
           <div className="text-5xl mb-3">🃏</div>
           <p className="font-medium" style={{ color: "var(--text-secondary)" }}>No cards here yet</p>
           {isOwn && tab === "actual" && !search && (
-            <button onClick={() => setShowAdd(true)} className="mt-4 text-sm font-medium" style={{ color: "var(--neon)" }}>Add your first card →</button>
+            <button onClick={() => setShowAdd(true)} className="mt-4 text-sm font-medium" style={{ color: "var(--neon)" }}>
+              Add your first card →
+            </button>
           )}
         </div>
       ) : (
@@ -359,12 +374,10 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ backgroundColor: "var(--bg-elevated)", borderBottom: "1px solid var(--border)" }}>
-                  {/* Checkbox column — only in actual tab and own collection */}
                   {isOwn && tab === "actual" && (
                     <th className="px-4 py-3 w-10">
                       <input type="checkbox" checked={allSelected} onChange={toggleSelectAll}
-                        className="cursor-pointer w-4 h-4 rounded"
-                        style={{ accentColor: "var(--neon)" }} />
+                        className="cursor-pointer w-4 h-4 rounded" style={{ accentColor: "var(--neon)" }} />
                     </th>
                   )}
                   <ThHeader k="card_name" label="Card" />
@@ -376,7 +389,7 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                   {show("bought")        && <ThHeader k="price_bought" label="Bought" right />}
                   {show("current_value") && <ThHeader k={tab === "actual" ? "actual_price" : "price_sold"} label={tab === "actual" ? "Current Value" : "Sold"} right />}
                   {show("pl")            && <ThHeader k="pl"           label="P&L" right />}
-                  {isOwn && <th className="px-4 py-3"></th>}
+                  {isOwn && <th className="px-4 py-3 text-right" style={{ color: "var(--text-secondary)", fontSize: 11 }}>ACTIONS</th>}
                 </tr>
               </thead>
               <tbody>
@@ -386,19 +399,20 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                   const isSelected = selected.has(card.id);
                   return (
                     <tr key={card.id}
+                      className="cursor-pointer"
                       style={{
                         borderTop: i > 0 ? "1px solid var(--border)" : "none",
                         backgroundColor: isSelected ? "var(--neon-dim)" : "transparent",
                       }}
+                      onClick={() => { if (isOwn) setEditCard(card); }}
                       onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = "var(--bg-card-hover)"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = isSelected ? "var(--neon-dim)" : "transparent"; }}>
 
-                      {/* Checkbox */}
+                      {/* Checkbox — stops row click from propagating */}
                       {isOwn && tab === "actual" && (
-                        <td className="px-4 py-3 w-10">
+                        <td className="px-4 py-3 w-10" onClick={(e) => e.stopPropagation()}>
                           <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(card.id)}
-                            className="cursor-pointer w-4 h-4 rounded"
-                            style={{ accentColor: "var(--neon)" }} />
+                            className="cursor-pointer w-4 h-4 rounded" style={{ accentColor: "var(--neon)" }} />
                         </td>
                       )}
 
@@ -417,7 +431,9 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                         <td className="px-4 py-3" style={{ color: "var(--text-secondary)" }}>
                           {card.set_name ? (() => {
                             const s = POKEMON_SETS.find((x) => x.code === card.set_name);
-                            return s ? <span title={s.series}>{s.name} <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>({s.code})</span></span> : card.set_name;
+                            return s
+                              ? <span title={s.series}>{s.name} <span className="text-xs font-mono" style={{ color: "var(--text-muted)" }}>({s.code})</span></span>
+                              : card.set_name;
                           })() : "—"}
                         </td>
                       )}
@@ -442,10 +458,10 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                           {tab === "actual" ? (
                             <div style={{ color: "var(--text-primary)" }}>{card.actual_price != null ? `€${card.actual_price.toFixed(2)}` : "—"}</div>
                           ) : (
-                            <div>
+                            <>
                               <div style={{ color: "var(--text-primary)" }}>{card.price_sold != null ? `€${card.price_sold.toFixed(2)}` : "—"}</div>
                               {card.date_sold && <div className="text-xs" style={{ color: "var(--text-muted)" }}>{format(new Date(card.date_sold), "dd/MM/yy")}</div>}
-                            </div>
+                            </>
                           )}
                         </td>
                       )}
@@ -457,40 +473,40 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
                         </td>
                       )}
 
-                      {/* Row actions */}
+                      {/* Actions — stop propagation so clicking buttons doesn't open edit */}
                       {isOwn && (
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-2">
                             {tab === "actual" && (
-                              <button onClick={() => setSoldCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ backgroundColor: "#00FF8822", color: "#00FF88", border: "1px solid #00FF8844" }}>Sold</button>
+                              <button onClick={() => setSoldCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium"
+                                style={{ backgroundColor: "#00FF8822", color: "#00FF88", border: "1px solid #00FF8844" }}>
+                                Sold
+                              </button>
                             )}
                             {tab === "actual" && (
                               <button
                                 onClick={() => {
-                                  if (selected.size > 0 && selected.has(card.id)) {
-                                    // If this card is part of selection, bulk move all selected
-                                    setBulkAction("move");
-                                  } else {
-                                    // Single card move
-                                    setMoveCard(card);
-                                  }
+                                  if (selected.size > 0 && selected.has(card.id)) setBulkAction("move");
+                                  else setMoveCard(card);
                                 }}
                                 className="text-xs px-2.5 py-1 rounded-lg font-medium"
                                 style={{ backgroundColor: "#88448822", color: "#CC88FF", border: "1px solid #88448844" }}>
                                 {collectionType === "collection" ? "→ Inv" : "→ Col"}
                               </button>
                             )}
-                            <button onClick={() => setEditCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium" style={{ backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }}>Edit</button>
+                            <button onClick={() => setEditCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium"
+                              style={{ backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }}>
+                              Edit
+                            </button>
                             <button
                               onClick={() => {
-                                if (selected.size > 0 && selected.has(card.id)) {
-                                  setBulkAction("delete");
-                                } else {
-                                  setDeleteConfirm(card);
-                                }
+                                if (selected.size > 0 && selected.has(card.id)) setBulkAction("delete");
+                                else setDeleteConfirm(card);
                               }}
                               className="text-xs px-2.5 py-1 rounded-lg font-medium"
-                              style={{ backgroundColor: "#FF003322", color: "#FF6B6B", border: "1px solid #FF003344" }}>Delete</button>
+                              style={{ backgroundColor: "#FF003322", color: "#FF6B6B", border: "1px solid #FF003344" }}>
+                              Delete
+                            </button>
                           </div>
                         </td>
                       )}
@@ -509,7 +525,7 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
           <div className="rounded-2xl p-6 w-full max-w-sm" style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)" }}>
             <h3 className="font-bold text-lg mb-2" style={{ color: "var(--text-primary)" }}>Delete {selectedCount} cards</h3>
             <p className="text-sm mb-5" style={{ color: "var(--text-secondary)" }}>
-              Are you sure you want to delete <strong style={{ color: "var(--text-primary)" }}>{selectedCount} cards</strong>? This cannot be undone.
+              Are you sure? This cannot be undone.
             </p>
             <div className="flex gap-3">
               <button onClick={() => setBulkAction(null)} className="flex-1 px-4 py-2 rounded-lg text-sm font-medium"
@@ -531,7 +547,7 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
               Move {selectedCount} cards to {collectionType === "collection" ? "Inventory" : "My Collection"}
             </h3>
             <p className="text-sm mb-5" style={{ color: "var(--text-secondary)" }}>
-              All <strong style={{ color: "var(--text-primary)" }}>{selectedCount} selected cards</strong> will be moved to your {collectionType === "collection" ? "Inventory" : "Collection"}.
+              All selected cards will be moved.
             </p>
             <div className="flex gap-3">
               <button onClick={() => setBulkAction(null)} className="flex-1 px-4 py-2 rounded-lg text-sm font-medium"
@@ -565,21 +581,35 @@ export default function CardsClientPage({ cards: initialCards, currentUserId, ta
         </div>
       )}
 
-      {(showAdd || editCard) && <CardModal card={editCard ?? undefined} userId={targetUserId} collectionType={collectionType} onSave={handleCardSaved} onSaveAndContinue={showAdd ? handleCardSavedAndContinue : undefined} onClose={() => { setShowAdd(false); setEditCard(null); }} />}
-      {soldCard && <SoldModal card={soldCard} onConfirm={handleSold} onClose={() => setSoldCard(null)} />}
-
+      {/* Delete confirm */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.8)" }}>
           <div className="rounded-2xl p-6 w-full max-w-sm" style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)" }}>
             <h3 className="font-bold text-lg mb-2" style={{ color: "var(--text-primary)" }}>Delete Card</h3>
-            <p className="text-sm mb-5" style={{ color: "var(--text-secondary)" }}>Are you sure you want to delete <strong style={{ color: "var(--text-primary)" }}>{deleteConfirm.card_name}</strong>? This cannot be undone.</p>
+            <p className="text-sm mb-5" style={{ color: "var(--text-secondary)" }}>
+              Are you sure you want to delete <strong style={{ color: "var(--text-primary)" }}>{deleteConfirm.card_name}</strong>? This cannot be undone.
+            </p>
             <div className="flex gap-3">
-              <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>Cancel</button>
-              <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 px-4 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: "#FF003344", border: "1px solid #FF003366", color: "#FF6B6B" }}>Delete</button>
+              <button onClick={() => setDeleteConfirm(null)} className="flex-1 px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>Cancel</button>
+              <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: "#FF003344", border: "1px solid #FF003366", color: "#FF6B6B" }}>Delete</button>
             </div>
           </div>
         </div>
       )}
+
+      {(showAdd || editCard) && (
+        <CardModal
+          card={editCard ?? undefined}
+          userId={targetUserId}
+          collectionType={collectionType}
+          onSave={handleCardSaved}
+          onSaveAndContinue={showAdd ? handleCardSavedAndContinue : undefined}
+          onClose={() => { setShowAdd(false); setEditCard(null); }}
+        />
+      )}
+      {soldCard && <SoldModal card={soldCard} onConfirm={handleSold} onClose={() => setSoldCard(null)} />}
     </div>
   );
 }
