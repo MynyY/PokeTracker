@@ -13,7 +13,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             background: "#111",
           }}>
             <img
-              src="/logo.jpg"
+              src="/logo.png"
               alt="PokéTracker"
               style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center center" }}
             />
