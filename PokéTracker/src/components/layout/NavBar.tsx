@@ -42,7 +42,7 @@ export default function NavBar({ profile }: { profile: Profile }) {
               background: "#111",
             }}>
               <img
-                src="/logo.png"
+                src="/logo.jpg"
                 alt="PokéTracker logo"
                 style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center center" }}
               />
