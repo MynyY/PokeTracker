@@ -33,20 +33,11 @@ export default function NavBar({ profile }: { profile: Profile }) {
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
           <Link href="/dashboard" className="flex items-center gap-2.5 font-bold" style={{ color: "var(--text-primary)" }}>
-            <div className="flex-shrink-0" style={{
-              width: 36,
-              height: 36,
-              borderRadius: "50%",
-              overflow: "hidden",
-              boxShadow: "0 0 10px #00E5CC55",
-              background: "#111",
-            }}>
-              <img
-                src="/logo.jpg"
-                alt="PokéTracker logo"
-                style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center center" }}
-              />
-            </div>
+           <img
+              src="/logo.jpg"
+              alt="PokéTracker logo"
+              style={{ width: 44, height: 44, objectFit: "contain", flexShrink: 0 }}
+            />
             <span className="hidden sm:inline">PokéTracker</span>
           </Link>
 
