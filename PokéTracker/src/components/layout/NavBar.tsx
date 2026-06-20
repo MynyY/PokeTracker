@@ -40,7 +40,7 @@ export default function NavBar({ profile }: { profile: Profile }) {
                 src="/logo.jpg"
                 alt="PokéTracker logo"
                 onClick={() => setLogoOpen(true)}
-                style={{ width: 60, height: 60, objectFit: "cover", borderRadius: "50%", cursor: "pointer", flexShrink: 0 }}
+                style={{ width: 48, height: 48, objectFit: "cover", borderRadius: "50%", cursor: "pointer", flexShrink: 0 }}
               />
               <Link href="/dashboard" className="font-bold hidden sm:inline" style={{ color: "var(--text-primary)" }}>
                 PokéTracker
