@@ -10,8 +10,8 @@ export default async function DashboardPage() {
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).single();
   const { data: cards } = await supabase.from("cards").select("*").eq("user_id", user.id);
 
-  const actualCards = cards?.filter((c) => c.status === "actual") ?? [];
-  const historyCards = cards?.filter((c) => c.status === "history") ?? [];
+  const actualCards = cards?.filter((c) => c.status === "actual" && !c.is_wishlist) ?? [];
+  const historyCards = cards?.filter((c) => c.status === "history" && !c.is_wishlist) ?? [];
   const totalInvested = actualCards.reduce((sum, c) => sum + (c.price_bought ?? 0), 0);
   const totalActualValue = actualCards.reduce((sum, c) => sum + (c.actual_price ?? 0), 0);
   const totalProfit = historyCards.reduce((sum, c) => sum + ((c.price_sold ?? 0) - (c.price_bought ?? 0)), 0);
