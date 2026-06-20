@@ -23,15 +23,15 @@ export default function DashboardClient({ username, actualCount, historyCount, t
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Cards in Collection" value={actualCount.toString()} icon="🃏" />
+        <StatCard label="Items in Collection" value={actualCount.toString()} icon="🃏" />
         <StatCard label="Total Invested" value={`€${totalInvested.toFixed(2)}`} icon="💰" />
         <StatCard label="Current Value" value={`€${totalActualValue.toFixed(2)}`} icon="📈" />
         <StatCard label="Realised Profit" value={`€${totalProfit.toFixed(2)}`} icon="✅" highlight={totalProfit >= 0 ? "green" : "red"} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <QuickLink href="/dashboard/cards?tab=actual" icon="🃏" label="My Collection" sub={`${actualCount} cards currently owned`} neon />
-        <QuickLink href="/dashboard/sales" icon="📚" label="Sale History" sub={`${historyCount} cards sold`} />
+        <QuickLink href="/dashboard/cards?tab=actual" icon="🃏" label="My Collection" sub={`${actualCount} items currently owned`} neon />
+        <QuickLink href="/dashboard/sales" icon="📚" label="Sale History" sub={`${historyCount} items sold`} />
       </div>
     </div>
   );

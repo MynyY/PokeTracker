@@ -20,7 +20,7 @@ export default function NavBar({ profile }: { profile: Profile }) {
 
   const links = [
     { href: "/dashboard", label: "Dashboard" },
-    { href: "/dashboard/cards", label: "My Collection" },
+    { href: "/dashboard/cards", label: "Personal Collection" },
     { href: "/dashboard/inventory", label: "Inventory" },
     { href: "/dashboard/wishlist", label: "Wishlist" },
     { href: "/dashboard/sales", label: "Sales History" },
