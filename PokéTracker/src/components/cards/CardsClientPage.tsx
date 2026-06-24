@@ -211,7 +211,16 @@ export default function CardsClientPage({
       const exists = prev.find((c) => c.id === card.id);
       return exists ? prev.map((c) => (c.id === card.id ? card : c)) : [card, ...prev];
     });
-    setEditCard(null); setShowAdd(false);
+    setEditCard(null);
+    setShowAdd(false);
+  }
+
+  function handleCardSavedBulk(card: Card) {
+    // Add card to list without closing modal (used when creating multiple)
+    setCards((prev) => {
+      const exists = prev.find((c) => c.id === card.id);
+      return exists ? prev.map((c) => (c.id === card.id ? card : c)) : [card, ...prev];
+    });
   }
 
   function handleSaveAndNext(savedCard: Card) {
@@ -290,7 +299,7 @@ export default function CardsClientPage({
         {isOwn && (
           <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg"
             style={{ backgroundColor: "var(--neon)", color: "#000" }}>
-            <span>+</span> Add To Collection
+            <span>+</span> Add Item
           </button>
         )}
       </div>
@@ -399,7 +408,7 @@ export default function CardsClientPage({
           <p className="font-medium" style={{ color: "var(--text-secondary)" }}>No cards here yet</p>
           {isOwn && tab === "actual" && !search && (
             <button onClick={() => setShowAdd(true)} className="mt-4 text-sm font-medium" style={{ color: "var(--neon)" }}>
-              Add your first card →
+              Add your first item →
             </button>
           )}
         </div>

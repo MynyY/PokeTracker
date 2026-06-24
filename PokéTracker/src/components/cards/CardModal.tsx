@@ -16,6 +16,7 @@ export default function CardModal({ card, userId, collectionType = 'collection',
     actual_price: card?.actual_price?.toString() ?? "",
     extra_info: card?.extra_info ?? "",
   });
+  const [amount, setAmount] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addAnother, setAddAnother] = useState(false);
@@ -161,7 +162,7 @@ export default function CardModal({ card, userId, collectionType = 'collection',
             <div className="flex gap-3">
               <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium" style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>Cancel</button>
               <button type="submit" disabled={loading} onClick={() => { setAddAnother(false); setSaveNext(false); }} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: "var(--neon)", color: "#000", opacity: loading ? 0.6 : 1 }}>
-                {loading && !addAnother && !saveNext ? "Saving…" : isEdit ? "Save Changes" : "Add Card"}
+                {loading && !addAnother && !saveNext ? "Saving…" : isEdit ? "Save Changes" : amount > 1 ? `Add ${amount} Items` : "Add Item"}
               </button>
             </div>
           </div>
