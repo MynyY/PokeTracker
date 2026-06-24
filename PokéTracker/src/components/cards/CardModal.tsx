@@ -37,6 +37,26 @@ export default function CardModal({ card, userId, collectionType = 'collection',
       extra_info: form.extra_info || null,
       collection_type: collectionType,
     };
+
+    // Multiple entries
+    if (!isEdit && amount > 1) {
+      const results = await Promise.all(
+        Array.from({ length: amount }).map(() =>
+          fetch("/api/cards", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...payload, user_id: userId }),
+          }).then((r) => r.json())
+        )
+      );
+      const failed = results.find((r) => r.error);
+      if (failed) { setError(failed.error); setLoading(false); return; }
+      results.forEach((r) => onSave(r.card));
+      setAmount(1);
+      setLoading(false);
+      return;
+    }
+
     const res = await fetch(isEdit ? `/api/cards/${card!.id}` : "/api/cards", {
       method: isEdit ? "PATCH" : "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(isEdit ? payload : { ...payload, user_id: userId }),
@@ -52,6 +72,7 @@ export default function CardModal({ card, userId, collectionType = 'collection',
     }
     setAddAnother(false);
     setSaveNext(false);
+    setAmount(1);
     setLoading(false);
   }
 
@@ -62,7 +83,7 @@ export default function CardModal({ card, userId, collectionType = 'collection',
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.85)" }}>
       <div className="rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)" }}>
         <div className="sticky top-0 px-6 py-4 flex items-center justify-between rounded-t-2xl" style={{ backgroundColor: "var(--bg-card)", borderBottom: "1px solid var(--border)" }}>
-          <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>{isEdit ? "Edit Card" : "Add Card"}</h2>
+          <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>{isEdit ? "Edit Item" : "Add Item"}</h2>
           <button onClick={onClose} className="text-xl leading-none" style={{ color: "var(--text-muted)" }}>×</button>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -108,6 +129,19 @@ export default function CardModal({ card, userId, collectionType = 'collection',
               <input type="number" step="0.01" min="0" value={form.actual_price} onChange={(e) => set("actual_price", e.target.value)} className={inputCls} style={inputStyle} placeholder="0.00"
                 onFocus={(e) => (e.target.style.borderColor = "var(--neon)")} onBlur={(e) => (e.target.style.borderColor = "var(--border)")} />
             </div>
+            {!isEdit && (
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Amount</label>
+                <select value={amount} onChange={(e) => setAmount(parseInt(e.target.value))} className={inputCls} style={inputStyle}>
+                  {Array.from({ length: 20 }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>{n}×</option>
+                  ))}
+                </select>
+                {amount > 1 && (
+                  <p className="text-xs mt-1" style={{ color: "var(--neon)" }}>{amount} identical entries will be created</p>
+                )}
+              </div>
+            )}
             {isEdit && card?.status === "history" && (
               <>
                 <div>
@@ -124,44 +158,33 @@ export default function CardModal({ card, userId, collectionType = 'collection',
             )}
             <div className="col-span-2">
               <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-secondary)" }}>Extra Info</label>
-              <textarea
-                value={form.extra_info}
-                onChange={(e) => set("extra_info", e.target.value)}
-                rows={3}
+              <textarea value={form.extra_info} onChange={(e) => set("extra_info", e.target.value)} rows={3}
                 placeholder="Notes, grading info, purchase location…"
-                className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none"
-                style={inputStyle}
-                onFocus={(e) => (e.target.style.borderColor = "var(--neon)")}
-                onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
-              />
+                className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none" style={inputStyle}
+                onFocus={(e) => (e.target.style.borderColor = "var(--neon)")} onBlur={(e) => (e.target.style.borderColor = "var(--border)")} />
             </div>
           </div>
           <div className="flex flex-col gap-2 pt-2">
             {!isEdit && (
-              <button
-                type="submit"
-                disabled={loading}
-                onClick={() => { setAddAnother(true); setSaveNext(false); }}
+              <button type="submit" disabled={loading} onClick={() => { setAddAnother(true); setSaveNext(false); }}
                 className="w-full px-4 py-2.5 rounded-lg text-sm font-semibold"
-                style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--neon)44", color: "var(--neon)", opacity: loading ? 0.6 : 1 }}
-              >
+                style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--neon)44", color: "var(--neon)", opacity: loading ? 0.6 : 1 }}>
                 {loading && addAnother ? "Saving…" : "+ Add Another One"}
               </button>
             )}
             {isEdit && onSaveAndNext && (
-              <button
-                type="submit"
-                disabled={loading}
-                onClick={() => { setSaveNext(true); setAddAnother(false); }}
+              <button type="submit" disabled={loading} onClick={() => { setSaveNext(true); setAddAnother(false); }}
                 className="w-full px-4 py-2.5 rounded-lg text-sm font-semibold"
-                style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--neon)44", color: "var(--neon)", opacity: loading ? 0.6 : 1 }}
-              >
+                style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--neon)44", color: "var(--neon)", opacity: loading ? 0.6 : 1 }}>
                 {loading && saveNext ? "Saving…" : "Save & Go To Next →"}
               </button>
             )}
             <div className="flex gap-3">
-              <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium" style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>Cancel</button>
-              <button type="submit" disabled={loading} onClick={() => { setAddAnother(false); setSaveNext(false); }} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold" style={{ backgroundColor: "var(--neon)", color: "#000", opacity: loading ? 0.6 : 1 }}>
+              <button type="button" onClick={onClose} className="flex-1 px-4 py-2.5 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>Cancel</button>
+              <button type="submit" disabled={loading} onClick={() => { setAddAnother(false); setSaveNext(false); }}
+                className="flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold"
+                style={{ backgroundColor: "var(--neon)", color: "#000", opacity: loading ? 0.6 : 1 }}>
                 {loading && !addAnother && !saveNext ? "Saving…" : isEdit ? "Save Changes" : amount > 1 ? `Add ${amount} Items` : "Add Item"}
               </button>
             </div>
