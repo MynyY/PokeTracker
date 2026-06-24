@@ -53,6 +53,8 @@ export default function CardsClientPage({
   const [editCard, setEditCard]             = useState<Card | null>(null);
   const [showAdd, setShowAdd]               = useState(false);
   const [soldCard, setSoldCard]             = useState<Card | null>(null);
+  const [restoreCard, setRestoreCard]       = useState<Card | null>(null);
+  const [restoreDest, setRestoreDest]       = useState<'collection' | 'inventory'>('collection');
   const [deleteConfirm, setDeleteConfirm]   = useState<Card | null>(null);
   const [moveCard, setMoveCard]             = useState<Card | null>(null);
   const [search, setSearch]                 = useState("");
@@ -183,6 +185,24 @@ export default function CardsClientPage({
       const { card: updated } = await res.json();
       setCards((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
       setSoldCard(null);
+    }
+  }
+
+  async function handleRestore(card: Card, destination: 'collection' | 'inventory') {
+    const res = await fetch(`/api/cards/${card.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: "actual",
+        price_sold: null,
+        date_sold: null,
+        collection_type: destination,
+      }),
+    });
+    if (res.ok) {
+      const { card: updated } = await res.json();
+      setCards((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      setRestoreCard(null);
     }
   }
 
@@ -509,6 +529,12 @@ export default function CardsClientPage({
                                 {collectionType === "collection" ? "→ Inv" : "→ Col"}
                               </button>
                             )}
+                            {tab === "history" && (
+                              <button onClick={() => setRestoreCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium"
+                                style={{ backgroundColor: "#88448822", color: "#CC88FF", border: "1px solid #88448844" }}>
+                                Restore
+                              </button>
+                            )}
                             <button onClick={() => setEditCard(card)} className="text-xs px-2.5 py-1 rounded-lg font-medium"
                               style={{ backgroundColor: "var(--neon-dim)", color: "var(--neon)", border: "1px solid var(--neon)44" }}>
                               Edit
@@ -609,6 +635,35 @@ export default function CardsClientPage({
                 style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>Cancel</button>
               <button onClick={() => handleDelete(deleteConfirm)} className="flex-1 px-4 py-2 rounded-lg text-sm font-medium"
                 style={{ backgroundColor: "#FF003344", border: "1px solid #FF003366", color: "#FF6B6B" }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {restoreCard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.8)" }}>
+          <div className="rounded-2xl p-6 w-full max-w-sm" style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)" }}>
+            <h3 className="font-bold text-lg mb-2" style={{ color: "var(--text-primary)" }}>Restore Card</h3>
+            <p className="text-sm mb-4" style={{ color: "var(--text-secondary)" }}>
+              Move <strong style={{ color: "var(--text-primary)" }}>{restoreCard.card_name}</strong> back to:
+            </p>
+            <div className="flex gap-2 mb-5">
+              <button onClick={() => setRestoreDest("collection")}
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: restoreDest === "collection" ? "var(--neon-dim)" : "var(--bg-elevated)", border: `1px solid ${restoreDest === "collection" ? "var(--neon)" : "var(--border)"}`, color: restoreDest === "collection" ? "var(--neon)" : "var(--text-secondary)" }}>
+                Personal Collection
+              </button>
+              <button onClick={() => setRestoreDest("inventory")}
+                className="flex-1 px-3 py-2 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: restoreDest === "inventory" ? "var(--neon-dim)" : "var(--bg-elevated)", border: `1px solid ${restoreDest === "inventory" ? "var(--neon)" : "var(--border)"}`, color: restoreDest === "inventory" ? "var(--neon)" : "var(--text-secondary)" }}>
+                Inventory
+              </button>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setRestoreCard(null)} className="flex-1 px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: "var(--bg-elevated)", border: "1px solid var(--border)", color: "var(--text-secondary)" }}>Cancel</button>
+              <button onClick={() => handleRestore(restoreCard, restoreDest)} className="flex-1 px-4 py-2 rounded-lg text-sm font-semibold"
+                style={{ backgroundColor: "#88448844", border: "1px solid #88448866", color: "#CC88FF" }}>Restore</button>
             </div>
           </div>
         </div>
